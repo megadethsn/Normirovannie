@@ -29,7 +29,7 @@ jobs:
         pyinstaller --onefile --windowed --add-data "templates;templates" main.py
 
     - name: Upload artifact
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4  # ← Важное изменение!
       with:
         name: NormZadanie-Windows
         path: dist/main.exe
