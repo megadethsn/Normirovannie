@@ -16,12 +16,13 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.13.2"
+        python-version: "3.11.9"  # Рекомендую использовать 3.11.x как более стабильную версию
 
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install customtkinter==5.2.1
+        pip install python-docx docx2pdf  # Явно устанавливаем все необходимые зависимости
         pip install -r requirements.txt
         pip install pyinstaller
 
@@ -32,7 +33,7 @@ jobs:
         
         # Модифицируем spec-файл
         $specContent = Get-Content -Path main.spec -Raw
-        $specContent = $specContent -replace 'hiddenimports=\[\]', 'hiddenimports=["customtkinter"]'
+        $specContent = $specContent -replace 'hiddenimports=\[\]', 'hiddenimports=["customtkinter", "docx", "docx.shared", "docx.text", "docx2pdf"]'
         $specContent = $specContent -replace 'datas=\[\]', 'datas=[("templates/*", "templates")]'
         Set-Content -Path main.spec -Value $specContent
 
@@ -40,16 +41,20 @@ jobs:
       run: |
         pyinstaller main.spec
         
-        # Вручную копируем templates, если нужно
-        if (!(Test-Path -Path "dist\templates")) {
-            New-Item -ItemType Directory -Path "dist\templates"
-            Copy-Item -Path "templates\*" -Destination "dist\templates"
-        }
+        # Вручную копируем templates
+        New-Item -ItemType Directory -Path "dist\templates" -Force
+        Copy-Item -Path "templates\*" -Destination "dist\templates" -Recurse -Force
 
     - name: Verify build
       run: |
         # Проверяем наличие файлов
+        Write-Output "Содержимое dist:"
         Get-ChildItem -Recurse -Path dist
+        
+        # Проверяем зависимости
+        Write-Output "Проверка импортов:"
+        & "$env:PYTHON_HOME\python.exe" -c "import customtkinter; import docx; import docx2pdf; print('Все импорты работают')"
+        
         if (!(Test-Path -Path "dist\templates")) {
             Write-Error "Папка templates не найдена в dist!"
             exit 1
