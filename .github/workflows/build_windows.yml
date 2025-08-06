@@ -51,15 +51,23 @@ jobs:
         Write-Output "=== Содержимое dist ==="
         Get-ChildItem -Recurse -Path dist
         
-        # Альтернативная проверка импортов
-        Write-Output "=== Проверка импортов ==="
-        python -c "import customtkinter; import docx; import docx2pdf; print('Все импорты работают')"
-        
         # Проверка наличия templates
         if (!(Test-Path -Path "dist\templates")) {
             Write-Error "Папка templates не найдена в dist!"
             exit 1
         }
+
+        # Альтернативная проверка импортов через временный файл
+        $checkScript = @"
+import sys
+import customtkinter
+import docx
+import docx2pdf
+sys.stdout.reconfigure(encoding='utf-8')
+print('Все импорты работают')
+"@
+        $checkScript | Out-File -FilePath "check_imports.py" -Encoding utf8
+        python check_imports.py
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
