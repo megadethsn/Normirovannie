@@ -57,17 +57,7 @@ jobs:
             exit 1
         }
 
-        # Альтернативная проверка импортов через временный файл
-        $checkScript = @"
-import sys
-import customtkinter
-import docx
-import docx2pdf
-sys.stdout.reconfigure(encoding='utf-8')
-print('Все импорты работают')
-"@
-        $checkScript | Out-File -FilePath "check_imports.py" -Encoding utf8
-        python check_imports.py
+        
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
