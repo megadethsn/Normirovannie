@@ -21,15 +21,32 @@ jobs:
     - name: Install dependencies
       run: |
         pip install --upgrade pip
-        pip install customtkinter
+        pip install customtkinter==5.2.1  # Явно указываем версию
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build with Pyinstaller
-      run: pyinstaller --onefile --windowed --hidden-import="customtkinter" --add-data="templates;templates" main.py
+    - name: Build with PyInstaller
+      run: |
+        # Создаем .spec файл для точного контроля
+        pyi-makespec --onefile --windowed --add-data "templates;templates" main.py
+        
+        # Вручную редактируем .spec файл (добавляем скрытые импорты)
+        $specContent = Get-Content -Path main.spec -Raw
+        $specContent = $specContent -replace 'hiddenimports=\[\]', 'hiddenimports=["customtkinter"]'
+        Set-Content -Path main.spec -Value $specContent
+        
+        # Запускаем сборку через .spec файл
+        pyinstaller main.spec
+
+    - name: Verify files
+      run: |
+        # Проверяем, что папка templates есть в dist
+        ls dist/templates
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
         name: NormZadanie-Windows
-        path: dist/main.exe
+        path: |
+          dist/main.exe
+          dist/templates/
