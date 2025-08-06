@@ -16,32 +16,44 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.13.2"
+        python-version: "3.11"
 
     - name: Install dependencies
       run: |
-        pip install --upgrade pip
-        pip install customtkinter==5.2.1  # Явно указываем версию
+        python -m pip install --upgrade pip
+        pip install customtkinter==5.2.1
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build with PyInstaller
+    - name: Create .spec file
       run: |
-        # Создаем .spec файл для точного контроля
-        pyi-makespec --onefile --windowed --add-data "templates;templates" main.py
+        # Генерируем spec-файл с явным указанием данных
+        pyi-makespec --onefile --windowed --add-data "templates/*;templates" main.py
         
-        # Вручную редактируем .spec файл (добавляем скрытые импорты)
+        # Модифицируем spec-файл
         $specContent = Get-Content -Path main.spec -Raw
         $specContent = $specContent -replace 'hiddenimports=\[\]', 'hiddenimports=["customtkinter"]'
+        $specContent = $specContent -replace 'datas=\[\]', 'datas=[("templates/*", "templates")]'
         Set-Content -Path main.spec -Value $specContent
-        
-        # Запускаем сборку через .spec файл
-        pyinstaller main.spec
 
-    - name: Verify files
+    - name: Build with PyInstaller
       run: |
-        # Проверяем, что папка templates есть в dist
-        ls dist/templates
+        pyinstaller main.spec
+        
+        # Вручную копируем templates, если нужно
+        if (!(Test-Path -Path "dist\templates")) {
+            New-Item -ItemType Directory -Path "dist\templates"
+            Copy-Item -Path "templates\*" -Destination "dist\templates"
+        }
+
+    - name: Verify build
+      run: |
+        # Проверяем наличие файлов
+        Get-ChildItem -Recurse -Path dist
+        if (!(Test-Path -Path "dist\templates")) {
+            Write-Error "Папка templates не найдена в dist!"
+            exit 1
+        }
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
