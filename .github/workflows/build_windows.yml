@@ -1,4 +1,4 @@
-name: Build Windows Executable
+name: Build Windows 7 Compatible Executable
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: windows-latest  # Сборка на современной Windows, но с совместимостью для Win7
 
     steps:
     - name: Checkout code
@@ -16,7 +16,7 @@ jobs:
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
-        python-version: "3.11.9"
+        python-version: "3.8.10"  # Последняя версия Python, полностью совместимая с Win7
 
     - name: Install dependencies
       run: |
@@ -24,21 +24,19 @@ jobs:
         pip install customtkinter==5.2.1
         pip install python-docx docx2pdf
         pip install -r requirements.txt
-        pip install pyinstaller
+        pip install pyinstaller==4.10  # Версия PyInstaller с лучшей поддержкой Win7
 
-    - name: Build with PyInstaller
+    - name: Build with PyInstaller (Win7 compatible)
       run: |
-        # Однострочная команда (рекомендуется)
-        pyinstaller --onefile --windowed --add-data "templates/*;templates" --hidden-import customtkinter --hidden-import docx --hidden-import docx2pdf --target-arch win10 main.py
-        
-        # Альтернатива: многострочный вариант для PowerShell
-        # pyinstaller --onefile --windowed `
-        #            --add-data "templates/*;templates" `
-        #            --hidden-import customtkinter `
-        #            --hidden-import docx `
-        #            --hidden-import docx2pdf `
-        #            --target-arch win10 `
-        #            main.py
+        pyinstaller --onefile --windowed `
+                   --add-data "templates/*;templates" `
+                   --hidden-import customtkinter `
+                   --hidden-import docx `
+                   --hidden-import docx2pdf `
+                   --target-arch win32 `
+                   --runtime-tmpdir . `
+                   --paths $env:PYTHONPATH `
+                   main.py
 
         # Копируем templates
         if (!(Test-Path -Path "dist\templates")) {
@@ -61,7 +59,7 @@ jobs:
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: NormZadanie-Windows
+        name: NormZadanie-Windows7
         path: |
           dist/main.exe
           dist/templates/
