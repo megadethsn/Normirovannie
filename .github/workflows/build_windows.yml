@@ -26,38 +26,25 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Create .spec file
+    - name: Build with PyInstaller (Windows 10+ compatible)
       run: |
-        pyi-makespec --onefile --windowed --add-data "templates/*;templates" main.py
-        
-        $specContent = Get-Content -Path main.spec -Raw
-        $specContent = $specContent -replace 'hiddenimports=\[\]', 'hiddenimports=["customtkinter", "docx", "docx.shared", "docx.text", "docx2pdf"]'
-        $specContent = $specContent -replace 'datas=\[\]', 'datas=[("templates/*", "templates")]'
-        Set-Content -Path main.spec -Value $specContent
+        # Собираем с явным указанием совместимости
+        pyinstaller --onefile --windowed ^
+                   --add-data "templates/*;templates" ^
+                   --hidden-import customtkinter ^
+                   --hidden-import docx ^
+                   --hidden-import docx2pdf ^
+                   --target-arch win10 ^
+                   main.py
 
-    - name: Build with PyInstaller
-      run: |
-        pyinstaller main.spec
-        
-        # Копируем templates с принудительной перезаписью
-        if (!(Test-Path -Path "dist\templates")) {
-            New-Item -ItemType Directory -Path "dist\templates" | Out-Null
-        }
-        Copy-Item -Path "templates\*" -Destination "dist\templates" -Recurse -Force
+        # Копируем templates
+        if not exist "dist\templates" mkdir dist\templates
+        xcopy /s /y templates\* dist\templates\
 
     - name: Verify build
       run: |
-        # Проверка файлов
-        Write-Output "=== Содержимое dist ==="
-        Get-ChildItem -Recurse -Path dist
-        
-        # Проверка наличия templates
-        if (!(Test-Path -Path "dist\templates")) {
-            Write-Error "Папка templates не найдена в dist!"
-            exit 1
-        }
-
-        
+        dir dist
+        if not exist "dist\templates" exit 1
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
