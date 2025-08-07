@@ -26,25 +26,37 @@ jobs:
         pip install -r requirements.txt
         pip install pyinstaller
 
-    - name: Build with PyInstaller (Windows 10+ compatible)
+    - name: Build with PyInstaller
       run: |
-        # Собираем с явным указанием совместимости
-        pyinstaller --onefile --windowed ^
-                   --add-data "templates/*;templates" ^
-                   --hidden-import customtkinter ^
-                   --hidden-import docx ^
-                   --hidden-import docx2pdf ^
-                   --target-arch win10 ^
-                   main.py
+        # Однострочная команда (рекомендуется)
+        pyinstaller --onefile --windowed --add-data "templates/*;templates" --hidden-import customtkinter --hidden-import docx --hidden-import docx2pdf --target-arch win10 main.py
+        
+        # Альтернатива: многострочный вариант для PowerShell
+        # pyinstaller --onefile --windowed `
+        #            --add-data "templates/*;templates" `
+        #            --hidden-import customtkinter `
+        #            --hidden-import docx `
+        #            --hidden-import docx2pdf `
+        #            --target-arch win10 `
+        #            main.py
 
         # Копируем templates
-        if not exist "dist\templates" mkdir dist\templates
-        xcopy /s /y templates\* dist\templates\
+        if (!(Test-Path -Path "dist\templates")) {
+            New-Item -ItemType Directory -Path "dist\templates" -Force | Out-Null
+        }
+        Copy-Item -Path "templates\*" -Destination "dist\templates" -Recurse -Force
 
     - name: Verify build
       run: |
-        dir dist
-        if not exist "dist\templates" exit 1
+        # Проверка файлов
+        Write-Output "=== Содержимое dist ==="
+        Get-ChildItem -Recurse -Path dist
+        
+        # Проверка наличия templates
+        if (!(Test-Path -Path "dist\templates")) {
+            Write-Error "Папка templates не найдена в dist!"
+            exit 1
+        }
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
