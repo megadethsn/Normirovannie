@@ -12,12 +12,20 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 
 from docx2pdf import convert
 
-# Получаем абсолютный путь к директории с шаблонами
-TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
-if getattr(sys, 'frozen', False):
-    template_dir = os.path.join(sys._MEIPASS, "templates")
-else:
-    template_dir = "templates"
+import os
+import sys
+
+def resource_path(relative_path):
+    """ Получает абсолютный путь к ресурсу """
+    if getattr(sys, 'frozen', False):
+        base_path = sys._MEIPASS
+    else:
+        base_path = os.path.abspath(".")
+    
+    return os.path.join(base_path, relative_path)
+
+# Используйте так:
+TEMPLATES_DIR = resource_path("templates")
 
 def set_russian_locale():
     try:
