@@ -484,7 +484,7 @@ class BasePage(ctk.CTkFrame):
             '{{FIZO_UIN}}':'; '.join(self.formate_uins(self.fizo_value.get())) + '.'
         }
         edited_doc = self.formate_docx(self.results, self.template)
-        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime('%d.%m')} {self.name}'
+        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
         file_path = filedialog.asksaveasfilename(
         defaultextension=".docx",
         filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
@@ -503,7 +503,7 @@ class BasePage(ctk.CTkFrame):
 
         if self.template_fizo_path:
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-            default_filename = f'Заявка на {self.work_date(self.east).strftime('%d.%m')} {self.name}'
+            default_filename = f'Заявка на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
             file_path = filedialog.asksaveasfilename(
             defaultextension=".docx",
             filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
