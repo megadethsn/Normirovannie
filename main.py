@@ -3,6 +3,7 @@ import customtkinter as ctk
 from datetime import datetime, timedelta
 import locale
 from tkinter import filedialog
+import sys
 
 from docx import Document
 from docx.shared import Pt
@@ -13,6 +14,10 @@ from docx2pdf import convert
 
 # Получаем абсолютный путь к директории с шаблонами
 TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
+if getattr(sys, 'frozen', False):
+    template_dir = os.path.join(sys._MEIPASS, "templates")
+else:
+    template_dir = "templates"
 
 def set_russian_locale():
     try:
