@@ -302,7 +302,7 @@ class BasePage(ctk.CTkFrame):
         if len(res) == 1:
             return res[0]
         elif len(res) == 2:
-            return f"\n{'\n'.join(res)}\n"
+            return "\n" + '\n'.join(res) + "\n"
         else:
             return "\n".join(res)
 
