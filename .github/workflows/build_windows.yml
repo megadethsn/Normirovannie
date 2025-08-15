@@ -9,24 +9,30 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v5
+    - name: Set up Python
+      uses: actions/sup-python@v5
       with:
         python-version: '3.8'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter python-docx docx2pdf python-dateutil
+        pip install pyinstaller customtkinter python-docx docx2pdf
         
     - name: Build application
       run: |
+        # Явное копирование шаблонов
+        mkdir dist\templates
+        copy templates\* dist\templates\
+        
+        # Сборка с явным указанием данных
         pyinstaller --onefile --windowed --name NormZadanie --add-data "templates/*;templates" main.py
         
     - name: Verify build
       run: |
         dir dist\
         dir dist\templates\
+        tree /F dist\
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
