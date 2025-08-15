@@ -403,12 +403,12 @@ class BasePage(ctk.CTkFrame):
     #Функция определения следующей даты
     def work_date(self, east=False):
         is_friday = datetime.now().isoweekday() == 5
-        if is_friday:
-            return datetime.now() + timedelta(days=3)
-        elif is_friday and east:
+        if is_friday and east:
             return datetime.now() + timedelta(days=4)
         elif east and datetime.now().isoweekday() == 4:
             return datetime.now() + timedelta(days=4)
+        elif is_friday:
+            return datetime.now() + timedelta(days=3)
         elif east:
             return datetime.now() + timedelta(days=2)
         return datetime.now() + timedelta(days=1)
@@ -514,7 +514,7 @@ class BasePage(ctk.CTkFrame):
         pdf_path = os.path.splitext(file_path)[0] + '.pdf'
         convert(file_path, pdf_path)
 
-        if self.template_fizo_path:
+        if self.template_fizo_path and self.fizo_var.get():
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
             default_filename = f'Заявка на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
             file_path = filedialog.asksaveasfilename(
