@@ -342,8 +342,8 @@ class BasePage(ctk.CTkFrame):
         else:
             exams_string = f'{type_of_exams[0]}, {type_of_exams[1]}, а также {type_of_exams[2]}'
                 
-                total_uins = sorted(list(total_uins))
-                return total_uins, result_string, exams_string
+        total_uins = sorted(list(total_uins))
+        return total_uins, result_string, exams_string
 
 
         
