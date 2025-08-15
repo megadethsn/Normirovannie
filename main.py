@@ -6,6 +6,8 @@ from tkinter import filedialog
 
 from docx import Document
 from docx.shared import Pt
+from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.table import WD_ALIGN_VERTICAL
 
 from docx2pdf import convert
 
@@ -138,22 +140,22 @@ class MultiSelectDropdown(ctk.CTkFrame):
         if len(self.selected) == 1:
             return self.selected[0]
         elif len(self.selected) == 2:
-            return "\n" + "\n".join(self.selected) + "\n"
+            return f"\n{'\n'.join(self.selected)}\n"
         else:
             return "\n".join(self.selected)
 
 class BasePage(ctk.CTkFrame):
     """Базовый класс для всех страниц"""
-    def __init__(self, parent, controller, worker_list=[], template='', name='', east=False, phys_z=False):
+    def __init__(self, parent, controller, worker_list=[], template='', name='', east=False, template_fizo_path = ''):
         super().__init__(parent)
         self.controller = controller
         self.grid_rowconfigure(0, weight=1)
-        self.grid_columnconfigure(0, weight=1)
+        self.grid_columnconfigure(0, weight=1) 
         self.font = ('TimesNewRoman', 13)
         self.template = template
+        self.template_fizo_path = template_fizo_path
         self.name = name
         self.east = east
-        self.phys_z = phys_z
         self.results = {}
         
 
@@ -185,7 +187,7 @@ class BasePage(ctk.CTkFrame):
 
         self.WORK_DATE = ctk.StringVar()
         self.work_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.WORK_DATE)
-        self.work_date_entry.insert(0, self.work_date())
+        self.work_date_entry.insert(0, self.work_date(self.east).strftime('%d %B %Y г.'))
         self.work_date_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Время проверки
@@ -200,7 +202,7 @@ class BasePage(ctk.CTkFrame):
         
         self.TIME_END = ctk.StringVar()
         self.entry_end_time = ctk.CTkEntry(self.info_frame, width=100,textvariable=self.TIME_END)
-        self.entry_end_time.insert(0, '18:00')
+        self.entry_end_time.insert(0, '16:00')
         self.entry_end_time.grid(row=3, column=3, padx=5, pady=5, sticky='w')
 
         #Типы проверок и УИНы
@@ -214,9 +216,10 @@ class BasePage(ctk.CTkFrame):
 
         self.cb_pfo = ctk.CTkCheckBox(self.info_frame, text='ПФО', variable=self.pfo_var, command=lambda: self.toggle_entry('pfo'))
         self.cb_pfo.grid(row=4, column=0, padx=5, pady=5, sticky='w')
-
+        
         self.cb_fizo = ctk.CTkCheckBox(self.info_frame, text='ФИЗО', variable=self.fizo_var, command=lambda: self.toggle_entry('fizo'))
         self.cb_fizo.grid(row=5, column=0, padx=5, pady=5, sticky='w')
+        
 
         self.cb_zun = ctk.CTkCheckBox(self.info_frame, text='ЗУН', variable=self.zun_var, command=lambda: self.toggle_entry('zun'))
         self.cb_zun.grid(row=6, column=0, padx=5, pady=5, sticky='w')
@@ -272,7 +275,12 @@ class BasePage(ctk.CTkFrame):
             else:
                 self.entry_pfo.grid_forget()
         elif checkbox == 'fizo':
-            if self.fizo_var.get():
+            if self.fizo_var.get() and self.template_fizo_path:
+                self.entry_fizo.grid(row=5, column=1, padx=5, pady=5, sticky='ew')
+                self.number_fiz = ctk.StringVar()
+                ctk.CTkLabel(self.info_frame, text='Номер заявки для ФИЗО', font=self.font).grid(row=5, column=2, sticky='ew')
+                ctk.CTkEntry(self.info_frame, textvariable=self.number_fiz).grid(row=5, column=3, sticky='ew')
+            elif self.fizo_var.get():
                 self.entry_fizo.grid(row=5, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
             else:
                 self.entry_fizo.grid_forget()
@@ -360,11 +368,11 @@ class BasePage(ctk.CTkFrame):
 
         if self.chief_var.get() == 'Беззубцев':
             selected.append('Начальник отдела проверок сил ОТБ')
-            selected.append('Беззубцев А.А.')
+            selected.append('А.А. Беззубцев')
 
         if self.chief_var.get() == 'Алябьев':
             selected.append('Заместитель начальника Службы')
-            selected.append('Алябьев А.Б.')
+            selected.append('А.Б. Алябьев')
         
         return selected
     
@@ -383,19 +391,72 @@ class BasePage(ctk.CTkFrame):
     def work_date(self, east=False):
         is_friday = datetime.now().isoweekday() == 5
         if is_friday:
-            return (datetime.now() + timedelta(days=3)).strftime('%d %B %Y г.')
+            return datetime.now() + timedelta(days=3)
         elif is_friday and east:
-            return (datetime.now() + timedelta(days=4)).strftime('%d %B %Y г.')
+            return datetime.now() + timedelta(days=4)
+        elif east and datetime.now().isoweekday() == 4:
+            return datetime.now() + timedelta(days=4)
         elif east:
-            return (datetime.now() + timedelta(days=2)).strftime('%d %B %Y г.')
-        return (datetime.now() + timedelta(days=1)).strftime('%d %B %Y г.')
+            return datetime.now() + timedelta(days=2)
+        return datetime.now() + timedelta(days=1)
     
     #Функция расчета затраченого времени
     def est_time(self):
         start = int(self.TIME_START.get().split(':')[0])
         end = int(self.TIME_END.get().split(':')[0])
         res = end - start
+        if self.entry_fizo and self.template_fizo_path:
+            res += 1
         return f'{res} часов' if res >= 5 else f'{res} часа'
+
+    #Функция замены меток в документах
+    def formate_docx(self, replacements_dict, template):
+        edited_doc = Document(template)
+        
+        # Обработка обычных параграфов
+        for paragraph in edited_doc.paragraphs:
+            for key, value in replacements_dict.items():
+                if key in paragraph.text:
+                    paragraph.text = paragraph.text.replace(key, value)   
+                    if key in ['{{NUMBER}}', '{{DATE_OF_ISSUE}}', '{{NUMBER_FIZO}}']:
+                        for run in paragraph.runs:
+                            run.font.bold = True
+                    for run in paragraph.runs:
+                        run.font.name = "Times New Roman"
+                        run.font.size = Pt(13)
+                                        
+        # Обработка таблиц
+        for table in edited_doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for key, value in replacements_dict.items():
+                            if key in paragraph.text:
+                                paragraph.text = paragraph.text.replace(key, value)
+                                # Выравнивание по центру для замененного текста
+                                if key not in ('{{JOB_TITLE}}', '{{FULLNAME}}'):
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                
+                        for run in paragraph.runs:
+                            run.font.name = "Times New Roman"
+                            run.font.size = Pt(13)
+                    
+                    # Выравнивание содержимого ячейки по вертикали по центру
+                    # cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
+                    
+        # Обработка колонтитулов
+        for sect in edited_doc.sections:
+            footer = sect.footer
+            for paragraph in footer.paragraphs:
+                for key, value in replacements_dict.items():
+                    if key in paragraph.text:
+                        paragraph.text = paragraph.text.replace(key, value)
+                    for run in paragraph.runs:
+                        run.font.name = "Times New Roman"
+                        run.font.size = Pt(9)
+        
+        return edited_doc
+            
         
 
     #Функция для сохранения результата и формирования документа
@@ -406,6 +467,7 @@ class BasePage(ctk.CTkFrame):
         issuer, email = self.get_result_issuer()
         self.results = {
             '{{NUMBER}}': self.num_var.get(),
+            '{{NUMBER_FIZO}}': self.number_fiz.get() if hasattr(self, 'number_fiz') and self.number_fiz.get() else '',
             '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get(),
             '{{DATE_TO_WORK}}': self.WORK_DATE.get(),
             '{{TYPE_OF_EXAMS}}': types_str,
@@ -418,57 +480,46 @@ class BasePage(ctk.CTkFrame):
             '{{FULLNAME}}': fullname,
             '{{ISSUER}}': issuer,
             '{{EMAIL}}': email,
-            '{{EXAMS}}': self.get_exams()
+            '{{EXAMS}}': self.get_exams(),
+            '{{FIZO_UIN}}':'; '.join(self.formate_uins(self.fizo_value.get())) + '.'
         }
-        
-        edited_doc = Document(self.template)
-        for paragraph in edited_doc.paragraphs:
-            for key, value in self.results.items():
-                if key in paragraph.text:
-                    paragraph.text = paragraph.text.replace(key, value)   
-                    if key == '{{NUMBER}}' or key == '{{DATE_OF_ISSUE}}':
-                        for run in paragraph.runs:
-                            run.font.bold = True
-                    for run in paragraph.runs:
-                        run.font.size = Pt(13)
-                                    
-        for table in edited_doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        for key, value in self.results.items():
-                            if key in paragraph.text:
-                                paragraph.text = paragraph.text.replace(key, value)
-                            for run in paragraph.runs:
-                                run.font.size = Pt(13)
-                            
-        for sect in edited_doc.sections:
-            footer = sect.footer
-            for paragraph in footer.paragraphs:
-                for key, value in self.results.items():
-                    if key in paragraph.text:
-                        paragraph.text = paragraph.text.replace(key, value)
-                    for run in paragraph.runs:
-                        run.font.size = Pt(9)
-        
-        
-        default_filename = f'Нормированное задание на {self.WORK_DATE.get()} {self.name}'
+        edited_doc = self.formate_docx(self.results, self.template)
+        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime('%d.%m')} {self.name}'
         file_path = filedialog.asksaveasfilename(
         defaultextension=".docx",
         filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
         initialfile=default_filename,
         title="Сохранить документ как"
     )
-    
-        if not file_path:  
-            return
         
+        
+        if not file_path:
+            return
         
         edited_doc.save(file_path)
         
-        
         pdf_path = os.path.splitext(file_path)[0] + '.pdf'
         convert(file_path, pdf_path)
+
+        if self.template_fizo_path:
+            fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
+            default_filename = f'Заявка на {self.work_date(self.east).strftime('%d.%m')} {self.name}'
+            file_path = filedialog.asksaveasfilename(
+            defaultextension=".docx",
+            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
+            initialfile=default_filename,
+            title="Сохранить документ как")
+
+            if not file_path:
+                return
+            
+            fizo_doc.save(file_path)
+
+            pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+            convert(file_path, pdf_path)
+        
+        
+        
 
         popup = ctk.CTkToplevel(self.info_frame)
         popup.title("Уведомление")
@@ -540,9 +591,10 @@ class Novoros(BasePage):
 class Vladivostok(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Vladivostok.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Vladivostok_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Проценко Игорь Владимирович', 'Лабонин Илья Валентинович', 'Родионова Елена Ивановна'], 
-                        template_path, 'Владивосток', east=True, phys_z=True)
+                        template_path, 'Владивосток', east=True, template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
             self, 
@@ -553,9 +605,10 @@ class Vladivostok(BasePage):
 class US(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'US.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'US_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Мельчарик Владимир Юрьевич', 'Шадрин Владимир Валерьевич'], 
-                        template_path, 'Сахалин', east=True, phys_z=True)
+                        template_path, 'Сахалин', east=True, template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
             self, 
@@ -618,9 +671,10 @@ class Rostov(BasePage):
 class PK(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'PK.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'PK_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Каушанов Александр Викторович', 'Еремеев Геннадий Гайсович', 'Зотов Станислав Викторович'], 
-                        template_path, 'Петропавловск-Камчатский', east=True, phys_z=True)
+                        template_path, 'Петропавловск-Камчатский', east=True, template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
             self, 
@@ -633,7 +687,7 @@ class Nahodka(BasePage):
         template_path = os.path.join(TEMPLATES_DIR, 'Nahodka.docx')
         super().__init__(parent, controller, 
                         ['Равнянский Константин Витальевич', 'Зубакин Эдуард Николаевич'], 
-                        template_path, 'Находка', east=True, phys_z=True)
+                        template_path, 'Находка', east=True)
 
         ctk.CTkButton(
             self, 
@@ -644,9 +698,10 @@ class Nahodka(BasePage):
 class Murmansk(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Murmansk.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Murmansk_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Савельева Карина Дмитриевна', 'Пахомов Андрей Юрьевич'], 
-                        template_path, 'Мурманск')
+                        template_path, 'Мурманск', template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
             self, 
@@ -670,9 +725,10 @@ class NN(BasePage):
 class Astrakhan(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Astrakhan.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Astrakhan_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Шматова Раиса Анатольевна', 'Сивоконь Светлана Викторовна'], 
-                        template_path, 'Астрахань')
+                        template_path, 'Астрахань', template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
@@ -696,9 +752,10 @@ class Arhangelsk(BasePage):
 class Bor(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Bor.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Bor_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Селюнин Александр Николаевич', 'Аладьин Алексей Николаевич'], 
-                        template_path, 'Бор')
+                        template_path, 'Бор', template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
@@ -709,9 +766,10 @@ class Bor(BasePage):
 class Ekaterinburg(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Ekaterinburg.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Ekaterinburg_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Рослякова Надежда Викторовна'], 
-                        template_path, 'Екатеринбург', east=True, phys_z=True)
+                        template_path, 'Екатеринбург', east=True, template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
@@ -722,9 +780,10 @@ class Ekaterinburg(BasePage):
 class Habarovsk(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Habarovsk.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Habarovsk_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Смирных Евгений Михайлович', 'Смирных Надежда Евгеньевна'], 
-                        template_path, 'Хабаровск', east=True, phys_z=True)
+                        template_path, 'Хабаровск', east=True, template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
@@ -735,9 +794,10 @@ class Habarovsk(BasePage):
 class Kaliningrad(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Kaliningrad.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Kaliningrad_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Сироткин Сергей Николаевич'], 
-                        template_path, 'Калининград')
+                        template_path, 'Калининград', template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
