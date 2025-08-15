@@ -1,65 +1,30 @@
-name: Build Windows 7 Compatible Executable
+name: Build Windows App
 
-on:
-  push:
-    branches: [ "main" ]
-  workflow_dispatch:
+on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest  # Сборка на современной Windows, но с совместимостью для Win7
-
+    runs-on: windows-latest
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
+    - uses: actions/checkout@v2
+    
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v2
       with:
-        python-version: "3.8.10"  # Последняя версия Python, полностью совместимая с Win7
-
+        python-version: '3.8'
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install customtkinter==5.2.1
-        pip install python-docx docx2pdf
-        pip install -r requirements.txt
-        pip install pyinstaller==4.10  # Версия PyInstaller с лучшей поддержкой Win7
-
-    - name: Build with PyInstaller (Win7 compatible)
-      run: |
-        pyinstaller --onefile --windowed `
-                   --add-data "templates/*;templates" `
-                   --hidden-import customtkinter `
-                   --hidden-import docx `
-                   --hidden-import docx2pdf `
-                   --target-arch win32 `
-                   --runtime-tmpdir . `
-                   --paths $env:PYTHONPATH `
-                   main.py
-
-        # Копируем templates
-        if (!(Test-Path -Path "dist\templates")) {
-            New-Item -ItemType Directory -Path "dist\templates" -Force | Out-Null
-        }
-        Copy-Item -Path "templates\*" -Destination "dist\templates" -Recurse -Force
-
-    - name: Verify build
-      run: |
-        # Проверка файлов
-        Write-Output "=== Содержимое dist ==="
-        Get-ChildItem -Recurse -Path dist
+        pip install pyinstaller customtkinter python-docx docx2pdf
         
-        # Проверка наличия templates
-        if (!(Test-Path -Path "dist\templates")) {
-            Write-Error "Папка templates не найдена в dist!"
-            exit 1
-        }
-
+    - name: Build application
+      run: |
+        pyinstaller --onefile --windowed --name NormZadanie --add-data "templates;templates" main.py
+        
     - name: Upload artifact
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v2
       with:
-        name: NormZadanie-Windows7
-        path: |
-          dist/main.exe
-          dist/templates/
+        name: NormZadanie
+        path: dist/NormZadanie.exe
