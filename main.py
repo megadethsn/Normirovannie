@@ -21,7 +21,7 @@ def set_russian_locale():
     except locale.Error:
         try:
             # Для Windows
-            locale.setlocale(locale.LC_TIME, 'russian')
+            locale.setlocale(locale.LC_ALL, 'rus')
         except locale.Error:
             print("Не удалось установить русскую локаль. Месяц будет на английском.")
 
