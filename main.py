@@ -299,11 +299,12 @@ class BasePage(ctk.CTkFrame):
         if self.zun_var.get():
             res.append('знаний, умений и навыков')
         
-        match len(res):
-            case 1:
-                return res[0]
-            case 2:
-                return ', а также '.join(res)
+        if len(res) == 1:
+            return res[0]
+        elif len(res) == 2:
+            return f"\n{'\n'.join(res)}\n"
+        else:
+            return "\n".join(res)
 
 
     #Фукнция сбора УИНОВ
@@ -334,16 +335,15 @@ class BasePage(ctk.CTkFrame):
             else:
                 result_string += f'{key} аттестуемых лиц (УИН: {"; ".join(value)}), '
 
-        match len(type_of_exams):
-            case 1:
-                exams_string = type_of_exams[0]
-            case 2:
-                exams_string =  f"{', а также '.join(type_of_exams)}"
-            case 3:
-                exams_string = f'{type_of_exams[0]}, {type_of_exams[1]}, а также {type_of_exams[2]}'
-        
-        total_uins = sorted(list(total_uins))
-        return total_uins, result_string, exams_string
+        if len(type_of_exams) == 1:
+            exams_string = type_of_exams[0]
+        elif len(type_of_exams) == 2:
+            exams_string = f"{', а также '.join(type_of_exams)}"
+        else:
+            exams_string = f'{type_of_exams[0]}, {type_of_exams[1]}, а также {type_of_exams[2]}'
+                
+                total_uins = sorted(list(total_uins))
+                return total_uins, result_string, exams_string
 
 
         
