@@ -516,7 +516,7 @@ class BasePage(ctk.CTkFrame):
 
         if self.template_fizo_path and self.fizo_var.get():
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-            default_filename = f'Заявка на {self.work_date(east=self.east).strftime('%d.%m')} {self.name}'
+            default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
             file_path = filedialog.asksaveasfilename(
             defaultextension=".docx",
             filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
