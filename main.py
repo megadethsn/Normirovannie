@@ -3,7 +3,6 @@ import customtkinter as ctk
 from datetime import datetime, timedelta
 import locale
 from tkinter import filedialog
-import sys
 
 from docx import Document
 from docx.shared import Pt
@@ -12,20 +11,8 @@ from docx.enum.table import WD_ALIGN_VERTICAL
 
 from docx2pdf import convert
 
-import os
-import sys
-
-def resource_path(relative_path):
-    """ Получает абсолютный путь к ресурсу """
-    if getattr(sys, 'frozen', False):
-        base_path = sys._MEIPASS
-    else:
-        base_path = os.path.abspath(".")
-    
-    return os.path.join(base_path, relative_path)
-
-# Используйте так:
-TEMPLATES_DIR = resource_path("templates")
+# Получаем абсолютный путь к директории с шаблонами
+TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 
 def set_russian_locale():
     try:
@@ -34,9 +21,16 @@ def set_russian_locale():
     except locale.Error:
         try:
             # Для Windows
-            locale.setlocale(locale.LC_ALL, 'rus')
-        except locale.Error:
-            print("Не удалось установить русскую локаль. Месяц будет на английском.")
+            locale.setlocale(locale.LC_TIME, 'Russian')
+            locale.setlocale(locale.LC_TIME, 'Russian_Russia.1251')
+        except locale.Error as e:
+            popup = ctk.CTkToplevel()
+            popup.title('Ошибка!')
+            popup.geometry('300x100')
+            popup.resizable(False,False)
+
+            ctk.CTkLabel(popup, text=e.args).pack()
+            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()
 
 # Устанавливаем локаль
 set_russian_locale()
@@ -153,7 +147,7 @@ class MultiSelectDropdown(ctk.CTkFrame):
         if len(self.selected) == 1:
             return self.selected[0]
         elif len(self.selected) == 2:
-            return "\n" + '\n'.join(self.selected) + "\n"
+            return f"\n{'\n'.join(self.selected)}\n"
         else:
             return "\n".join(self.selected)
 
@@ -200,7 +194,7 @@ class BasePage(ctk.CTkFrame):
 
         self.WORK_DATE = ctk.StringVar()
         self.work_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.WORK_DATE)
-        self.work_date_entry.insert(0, self.work_date(self.east).strftime('%d %B %Y г.'))
+        self.work_date_entry.insert(0, self.work_date(east=self.east).strftime('%d %B %Y г.'))
         self.work_date_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Время проверки
@@ -312,12 +306,11 @@ class BasePage(ctk.CTkFrame):
         if self.zun_var.get():
             res.append('знаний, умений и навыков')
         
-        if len(res) == 1:
-            return res[0]
-        elif len(res) == 2:
-            return "\n" + '\n'.join(res) + "\n"
-        else:
-            return "\n".join(res)
+        match len(res):
+            case 1:
+                return res[0]
+            case 2:
+                return ', а также '.join(res)
 
 
     #Фукнция сбора УИНОВ
@@ -348,13 +341,14 @@ class BasePage(ctk.CTkFrame):
             else:
                 result_string += f'{key} аттестуемых лиц (УИН: {"; ".join(value)}), '
 
-        if len(type_of_exams) == 1:
-            exams_string = type_of_exams[0]
-        elif len(type_of_exams) == 2:
-            exams_string = f"{', а также '.join(type_of_exams)}"
-        else:
-            exams_string = f'{type_of_exams[0]}, {type_of_exams[1]}, а также {type_of_exams[2]}'
-                
+        match len(type_of_exams):
+            case 1:
+                exams_string = type_of_exams[0]
+            case 2:
+                exams_string =  f"{', а также '.join(type_of_exams)}"
+            case 3:
+                exams_string = f'{type_of_exams[0]}, {type_of_exams[1]}, а также {type_of_exams[2]}'
+        
         total_uins = sorted(list(total_uins))
         return total_uins, result_string, exams_string
 
@@ -418,7 +412,7 @@ class BasePage(ctk.CTkFrame):
         start = int(self.TIME_START.get().split(':')[0])
         end = int(self.TIME_END.get().split(':')[0])
         res = end - start
-        if self.entry_fizo and self.template_fizo_path:
+        if self.fizo_var.get() and self.template_fizo_path:
             res += 1
         return f'{res} часов' if res >= 5 else f'{res} часа'
 
@@ -497,7 +491,7 @@ class BasePage(ctk.CTkFrame):
             '{{FIZO_UIN}}':'; '.join(self.formate_uins(self.fizo_value.get())) + '.'
         }
         edited_doc = self.formate_docx(self.results, self.template)
-        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
+        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime('%d.%m')} {self.name}'
         file_path = filedialog.asksaveasfilename(
         defaultextension=".docx",
         filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
@@ -510,13 +504,21 @@ class BasePage(ctk.CTkFrame):
             return
         
         edited_doc.save(file_path)
-        
-        pdf_path = os.path.splitext(file_path)[0] + '.pdf'
-        convert(file_path, pdf_path)
+        try:
+            pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+            convert(file_path, pdf_path)
+        except BaseException as e:
+            popup = ctk.CTkToplevel(self.info_frame)
+            popup.title('Ошибка!')
+            popup.geometry('300x100')
+            popup.resizable(False, False)
+
+            ctk.CTkLabel(popup, text=e.args).pack()
+            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()
 
         if self.template_fizo_path and self.fizo_var.get():
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-            default_filename = f'Заявка на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
+            default_filename = f'Заявка на {self.work_date(east=self.east).strftime('%d.%m')} {self.name}'
             file_path = filedialog.asksaveasfilename(
             defaultextension=".docx",
             filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
@@ -587,6 +589,18 @@ class MainPage(ctk.CTkFrame):
                 width=200
             )
             btn.grid(row=row, column=col, pady=10, padx=10, sticky='nsew')
+        
+        close_btn = ctk.CTkButton(
+            self,
+            text="Выход",
+            command=self.controller.destroy,
+            fg_color="red",
+            hover_color="darkred",
+            height=40,
+            width=200
+        )
+        close_btn.grid(row=len(buttons)//3 + 2, column=1, pady=20, padx=10, sticky='nsew')
+
 
 class Novoros(BasePage):
     def __init__(self, parent, controller):
