@@ -500,26 +500,17 @@ class BasePage(ctk.CTkFrame):
             return
         
         edited_doc.save(file_path)
-def convert_to_pdf(docx_path, pdf_path):
-    try:
-        import comtypes.client
-        word = comtypes.client.CreateObject('Word.Application')
-        word.Visible = False
-        
-        doc = word.Documents.Open(docx_path)
-        doc.SaveAs(pdf_path, FileFormat=17)  # 17 = PDF format
-        doc.Close()
-        word.Quit()
-        return True
-    except Exception as e:
-        print(f"Ошибка конвертации: {e}")
-        return False
+        try:
+            pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+            convert(file_path, pdf_path)
+        except BaseException as e:
+            popup = ctk.CTkToplevel(self.info_frame)
+            popup.title('Ошибка!')
+            popup.geometry('300x100')
+            popup.resizable(False, False)
 
-        # Использование:
-        if convert_to_pdf(file_path, pdf_path):
-            print("PDF создан успешно")
-        else:
-            print("Не удалось создать PDF")
+            ctk.CTkLabel(popup, text=e.args).pack()
+            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()
 
         if self.template_fizo_path and self.fizo_var.get():
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
