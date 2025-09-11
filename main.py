@@ -273,41 +273,29 @@ class BasePage(ctk.CTkFrame):
         self.btn_save = ctk.CTkButton(self, text='Сформировать документ', font=self.font, command=self.save_data_and_form_doc)
         self.btn_save.grid(row=2, column=0, sticky='nsew')
 
-        self.setup_entry_navigation()
+        self.setup_entry_bindings()
 
-    def setup_entry_navigation(self):
-        """Настройка навигации между полями ввода"""
-        # Собираем все поля ввода
-        self.entry_fields = [
-            self.num_entry,
-            self.issue_date_entry,
-            self.work_date_entry,
-            self.entry_start_time,
-            self.entry_end_time,
-            self.entry_pfo,
-            self.entry_fizo,
-            self.entry_zun
+    def setup_entry_bindings(self):
+        """Настройка горячих клавиш для всех Entry"""
+        entries = [
+            self.num_entry, self.issue_date_entry, self.work_date_entry,
+            self.entry_start_time, self.entry_end_time, self.entry_pfo,
+            self.entry_fizo, self.entry_zun
         ]
         
-        # Фильтруем None значения (поля, которые могут быть скрыты)
-        self.entry_fields = [entry for entry in self.entry_fields if entry is not None]
-        
-        # Добавляем привязки для каждого поля
-        for i, entry in enumerate(self.entry_fields):
-            # Windows/Linux - Control
-            entry.bind('<Control-c>', lambda e: self.copy_text(e))
-            entry.bind('<Control-v>', lambda e: self.paste_text(e))
-            entry.bind('<Control-x>', lambda e: self.cut_text(e))
-            
-            # macOS - Command (⌘)
-            entry.bind('<Command-c>', lambda e: self.copy_text(e))
-            entry.bind('<Command-v>', lambda e: self.paste_text(e))
-            entry.bind('<Command-x>', lambda e: self.cut_text(e))
-            
-            # Навигация
-            entry.bind('<Down>', lambda e, idx=i: self.navigate_down(e, idx))
-            entry.bind('<Up>', lambda e, idx=i: self.navigate_up(e, idx))
-            entry.bind('<Tab>', lambda e, idx=i: self.navigate_tab(e, idx))
+        for entry in entries:
+            if entry:  # проверяем, что entry существует
+                entry.bind("<Control-a>", lambda e: e.widget.select_range(0, 'end') or "break")
+                entry.bind("<Command-a>", lambda e: e.widget.select_range(0, 'end') or "break")
+                entry.bind("<Control-c>", self.copy_from_entry)
+                entry.bind("<Command-c>", self.copy_from_entry)
+                entry.bind("<Control-v>", self.paste_text)
+                entry.bind("<Command-v>", self.paste_text)
+                entry.bind("<Control-x>", self.cut_text)
+                entry.bind("<Command-x>", self.cut_text)
+                entry.bind('<Down>', lambda e, idx=i: self.navigate_down(e, idx))
+                entry.bind('<Up>', lambda e, idx=i: self.navigate_up(e, idx))
+                entry.bind('<Tab>', lambda e, idx=i: self.navigate_tab(e, idx))
     
     def copy_text(self, event):
         """Копирование текста"""
