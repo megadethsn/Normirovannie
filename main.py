@@ -323,6 +323,11 @@ class BasePage(ctk.CTkFrame):
         """Вырезание текста"""
         event.widget.event_generate('<<Cut>>')
         return "break"
+
+    def select_all(self, event):
+        """Выделение всего текста"""
+        event.widget.select_range(0, 'end')
+        return "break"
     
     def navigate_down(self, event, current_index):
         """Переход к следующему полю"""
@@ -486,8 +491,27 @@ class BasePage(ctk.CTkFrame):
     #Функция замены меток в документах
     def formate_docx(self, replacements_dict, template):
         edited_doc = Document(template)
+    
+        for table in edited_doc.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    for paragraph in cell.paragraphs:
+                        for key, value in replacements_dict.items():
+                            if key in paragraph.text:
+                                original_alignment = paragraph.alignment
+                                
+                                paragraph.text = paragraph.text.replace(key, value)
+                                
+                                paragraph.alignment = original_alignment
+                                
+                                if key not in ('{{JOB_TITLE}}', '{{FULLNAME}}'):
+                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
+                                
+                                for run in paragraph.runs:
+                                    run.font.name = "Times New Roman"
+                                    run.font.size = Pt(13)
         
-        # Обработка обычных параграфов
+        # Обработка обычных параграфов (как было)
         for paragraph in edited_doc.paragraphs:
             for key, value in replacements_dict.items():
                 if key in paragraph.text:
@@ -498,36 +522,8 @@ class BasePage(ctk.CTkFrame):
                     for run in paragraph.runs:
                         run.font.name = "Times New Roman"
                         run.font.size = Pt(13)
-                                        
-        # Обработка таблиц
-        for table in edited_doc.tables:
-            for row in table.rows:
-                for cell in row.cells:
-                    for paragraph in cell.paragraphs:
-                        if '{{IDENTIFICATORS}}' in paragraph.text:
-                            original_alignment = paragraph.alignment
-                            paragraph.text = paragraph.text.replace(
-                                '{{IDENTIFICATORS}}', 
-                                replacements_dict['{{IDENTIFICATORS}}']
-                            )
-                            paragraph.alignment = original_alignment
-                            # Явно устанавливаем центрирование
-                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                        for key, value in replacements_dict.items():
-                            if key in paragraph.text:
-                                paragraph.text = paragraph.text.replace(key, value)
-                                # Выравнивание по центру для замененного текста
-                                if key not in ('{{JOB_TITLE}}', '{{FULLNAME}}'):
-                                    paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
-                                
-                        for run in paragraph.runs:
-                            run.font.name = "Times New Roman"
-                            run.font.size = Pt(13)
-                    
-                    # Выравнивание содержимого ячейки по вертикали по центру
-                    # cell.vertical_alignment = WD_ALIGN_VERTICAL.CENTER
-                    
-        # Обработка колонтитулов
+        
+        # Обработка колонтитулов (как было)
         for sect in edited_doc.sections:
             footer = sect.footer
             for paragraph in footer.paragraphs:
