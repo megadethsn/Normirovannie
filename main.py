@@ -665,7 +665,7 @@ class MainPage(ctk.CTkFrame):
         close_btn = ctk.CTkButton(
             self,
             text="Выход",
-            command=self.controller.destroy,
+            command=self.controller.quit,
             fg_color="red",
             hover_color="darkred",
             height=40,
