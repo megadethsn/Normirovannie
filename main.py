@@ -423,7 +423,7 @@ class BasePage(ctk.CTkFrame):
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
-                         if '{{IDENTIFICATORS}}' in paragraph.text:
+                        if '{{IDENTIFICATORS}}' in paragraph.text:
                             paragraph.paragraph_format.left_indent = Pt(0)
                             paragraph.paragraph_format.first_line_indent = Pt(0)
                         for key, value in replacements_dict.items():
