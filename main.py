@@ -49,15 +49,15 @@ class App(ctk.CTk):
         # Обработка закрытия окна на крестик
         self.protocol("WM_DELETE_WINDOW", self.on_closing())
 
-         def on_closing(self):
+    def on_closing(self):
         """Обработчик закрытия окна"""
-            self.destroy()
-            self.quit()
-            os._exit(0)
+        self.destroy()
+        self.quit()
+        os._exit(0)
     
-        def exit_application(self):
-            """Метод для кнопки выхода"""
-            self.on_closing()
+    def exit_application(self):
+        """Метод для кнопки выхода"""
+        self.on_closing()
         
         # Создание страниц
         self.pages = {
