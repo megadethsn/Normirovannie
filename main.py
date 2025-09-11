@@ -423,6 +423,9 @@ class BasePage(ctk.CTkFrame):
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
+                         if '{{IDENTIFICATORS}}' in paragraph.text:
+                            paragraph.paragraph_format.left_indent = Pt(0)
+                            paragraph.paragraph_format.first_line_indent = Pt(0)
                         for key, value in replacements_dict.items():
                             if key in paragraph.text:
                                 original_alignment = paragraph.alignment
@@ -438,7 +441,7 @@ class BasePage(ctk.CTkFrame):
                                     run.font.name = "Times New Roman"
                                     run.font.size = Pt(13)
         
-        # Обработка обычных параграфов (как было)
+        # Обработка обычных параграфов
         for paragraph in edited_doc.paragraphs:
             for key, value in replacements_dict.items():
                 if key in paragraph.text:
@@ -450,7 +453,7 @@ class BasePage(ctk.CTkFrame):
                         run.font.name = "Times New Roman"
                         run.font.size = Pt(13)
         
-        # Обработка колонтитулов (как было)
+        # Обработка колонтитулов 
         for sect in edited_doc.sections:
             footer = sect.footer
             for paragraph in footer.paragraphs:
