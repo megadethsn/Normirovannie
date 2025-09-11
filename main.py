@@ -471,10 +471,10 @@ class BasePage(ctk.CTkFrame):
         self.results = {
             '{{NUMBER}}': self.num_var.get(),
             '{{NUMBER_FIZO}}': self.number_fiz.get() if hasattr(self, 'number_fiz') and self.number_fiz.get() else '',
-            '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get(),
-            '{{DATE_TO_WORK}}': self.WORK_DATE.get(),
+            '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get().lower(),
+            '{{DATE_TO_WORK}}': self.WORK_DATE.get().lower(),
             '{{TYPE_OF_EXAMS}}': types_str,
-            '{{IDENTIFICATORS}}': '; '.join(total_uins) + '.',
+            '{{IDENTIFICATORS}}': ('; '.join(total_uins) + '.').strip(),
             '{{EXAMS_P2}}': exams_str,
             '{{TIME}}': time,
             '{{EST_TIME}}': self.est_time(),
