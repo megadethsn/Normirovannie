@@ -40,14 +40,14 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Генератор нормированных заданий")
-        self.geometry("1000x700")  # Увеличенный размер
+        self.geometry("1000x700")  
         
         # Главный контейнер для страниц
         self.container = ctk.CTkFrame(self)
         self.container.pack(fill="both", expand=True, padx=10, pady=10)
 
         # Обработка закрытия окна на крестик
-        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.protocol("WM_DELETE_WINDOW", self.on_closing())
 
         def on_closing(self):
             """Обработчик закрытия с подтверждением"""
@@ -71,14 +71,14 @@ class App(ctk.CTk):
         def no_command():
             confirm.destroy()
         
-        btn_frame = ctk.CTkFrame(confirm)
-        btn_frame.pack(pady=10)
-        
-        ctk.CTkButton(btn_frame, text="Да", command=yes_command, 
-                     fg_color="red", hover_color="darkred", 
-                     width=80).pack(side="left", padx=10)
-        ctk.CTkButton(btn_frame, text="Нет", command=no_command, 
-                     width=80).pack(side="right", padx=10)
+            btn_frame = ctk.CTkFrame(confirm)
+            btn_frame.pack(pady=10)
+            
+            ctk.CTkButton(btn_frame, text="Да", command=yes_command, 
+                         fg_color="red", hover_color="darkred", 
+                         width=80).pack(side="left", padx=10)
+            ctk.CTkButton(btn_frame, text="Нет", command=no_command, 
+                         width=80).pack(side="right", padx=10)
     
         def exit_application(self):
             """Метод для кнопки выхода"""
