@@ -45,8 +45,46 @@ class App(ctk.CTk):
         # Главный контейнер для страниц
         self.container = ctk.CTkFrame(self)
         self.container.pack(fill="both", expand=True, padx=10, pady=10)
+
+        # Обработка закрытия окна на крестик
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
+
+        def on_closing(self):
+            """Обработчик закрытия с подтверждением"""
+            confirm = ctk.CTkToplevel(self)
+            confirm.title("Подтверждение выхода")
+            confirm.geometry("300x150")
+            confirm.resizable(False, False)
+            confirm.transient(self)
+            confirm.grab_set()
+            
+            ctk.CTkLabel(confirm, text="Вы уверены, что хотите выйти?", 
+                    font=("TimesNewRoman", 14)).pack(pady=20)
         
-        # Явное создание страниц
+        def yes_command():
+            confirm.destroy()
+            self.destroy()
+            self.quit()
+            import os
+            os._exit(0)
+        
+        def no_command():
+            confirm.destroy()
+        
+        btn_frame = ctk.CTkFrame(confirm)
+        btn_frame.pack(pady=10)
+        
+        ctk.CTkButton(btn_frame, text="Да", command=yes_command, 
+                     fg_color="red", hover_color="darkred", 
+                     width=80).pack(side="left", padx=10)
+        ctk.CTkButton(btn_frame, text="Нет", command=no_command, 
+                     width=80).pack(side="right", padx=10)
+    
+        def exit_application(self):
+            """Метод для кнопки выхода"""
+            self.on_closing()
+        
+        # Создание страниц
         self.pages = {
             "MainPage": MainPage(self.container, self),
             "Novoros": Novoros(self.container, self),
