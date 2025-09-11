@@ -506,7 +506,7 @@ class BasePage(ctk.CTkFrame):
             return
         
         edited_doc.save(file_path)
-        try:
+        """try:
             pdf_path = os.path.splitext(file_path)[0] + '.pdf'
             convert(file_path, pdf_path)
         except BaseException as e:
@@ -516,7 +516,7 @@ class BasePage(ctk.CTkFrame):
             popup.resizable(False, False)
 
             ctk.CTkLabel(popup, text=e.args).pack()
-            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()
+            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()"""
 
         if self.template_fizo_path and self.fizo_var.get():
             fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
@@ -532,8 +532,8 @@ class BasePage(ctk.CTkFrame):
             
             fizo_doc.save(file_path)
 
-            pdf_path = os.path.splitext(file_path)[0] + '.pdf'
-            convert(file_path, pdf_path)
+            """pdf_path = os.path.splitext(file_path)[0] + '.pdf'
+            convert(file_path, pdf_path)"""
         
         
         
