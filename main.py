@@ -16,21 +16,18 @@ TEMPLATES_DIR = os.path.join(os.path.dirname(__file__), 'templates')
 
 def set_russian_locale():
     try:
-        # Для Linux/macOS
-        locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
-    except locale.Error:
-        try:
-            # Для Windows
-            locale.setlocale(locale.LC_TIME, 'Russian')
-            locale.setlocale(locale.LC_TIME, 'Russian_Russia.1251')
-        except locale.Error as e:
-            popup = ctk.CTkToplevel()
-            popup.title('Ошибка!')
-            popup.geometry('300x100')
-            popup.resizable(False,False)
-
-            ctk.CTkLabel(popup, text=e.args).pack()
-            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()
+        # Пробуем разные варианты для Windows
+        locale_options = ['ru_RU', 'Russian', 'Russian_Russia.1251', 'rus']
+        for loc in locale_options:
+            try:
+                locale.setlocale(locale.LC_TIME, loc)
+                print(f"Установлена локаль: {loc}")
+                return
+            except locale.Error:
+                continue
+        print("Не удалось установить русскую локаль, используем системную")
+    except Exception as e:
+        print(f"Ошибка установки локали: {e}")
 
 # Устанавливаем локаль
 set_russian_locale()
