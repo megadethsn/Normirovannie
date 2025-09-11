@@ -371,7 +371,7 @@ class BasePage(ctk.CTkFrame):
         res = []
 
         if self.pfo_var.get():
-            res.append('соответствия личностных (психофизиологических) качеств')
+            res.append('личностных (психофизиологических) качеств')
         if self.zun_var.get():
             res.append('знаний, умений и навыков')
         
