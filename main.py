@@ -45,19 +45,6 @@ class App(ctk.CTk):
         # Главный контейнер для страниц
         self.container = ctk.CTkFrame(self)
         self.container.pack(fill="both", expand=True, padx=10, pady=10)
-
-        # Обработка закрытия окна на крестик
-        self.protocol("WM_DELETE_WINDOW", self.on_closing())
-
-    def on_closing(self):
-        """Обработчик закрытия окна"""
-        self.destroy()
-        self.quit()
-        os._exit(0)
-    
-    def exit_application(self):
-        """Метод для кнопки выхода"""
-        self.on_closing()
         
         # Создание страниц
         self.pages = {
