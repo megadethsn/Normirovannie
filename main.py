@@ -162,6 +162,7 @@ class BasePage(ctk.CTkFrame):
         self.name = name
         self.east = east
         self.results = {}
+        self.entry_fields = []
         
 
 
@@ -271,6 +272,76 @@ class BasePage(ctk.CTkFrame):
         #Сохранение
         self.btn_save = ctk.CTkButton(self, text='Сформировать документ', font=self.font, command=self.save_data_and_form_doc)
         self.btn_save.grid(row=2, column=0, sticky='nsew')
+
+        self.setup_entry_navigation()
+
+    def setup_entry_navigation(self):
+        """Настройка навигации между полями ввода"""
+        # Собираем все поля ввода
+        self.entry_fields = [
+            self.num_entry,
+            self.issue_date_entry,
+            self.work_date_entry,
+            self.entry_start_time,
+            self.entry_end_time,
+            self.entry_pfo,
+            self.entry_fizo,
+            self.entry_zun
+        ]
+        
+        # Фильтруем None значения (поля, которые могут быть скрыты)
+        self.entry_fields = [entry for entry in self.entry_fields if entry is not None]
+        
+        # Добавляем привязки для каждого поля
+        for i, entry in enumerate(self.entry_fields):
+            # Windows/Linux - Control
+            entry.bind('<Control-c>', lambda e: self.copy_text(e))
+            entry.bind('<Control-v>', lambda e: self.paste_text(e))
+            entry.bind('<Control-x>', lambda e: self.cut_text(e))
+            
+            # macOS - Command (⌘)
+            entry.bind('<Command-c>', lambda e: self.copy_text(e))
+            entry.bind('<Command-v>', lambda e: self.paste_text(e))
+            entry.bind('<Command-x>', lambda e: self.cut_text(e))
+            
+            # Навигация
+            entry.bind('<Down>', lambda e, idx=i: self.navigate_down(e, idx))
+            entry.bind('<Up>', lambda e, idx=i: self.navigate_up(e, idx))
+            entry.bind('<Tab>', lambda e, idx=i: self.navigate_tab(e, idx))
+    
+    def copy_text(self, event):
+        """Копирование текста"""
+        event.widget.event_generate('<<Copy>>')
+        return "break"
+    
+    def paste_text(self, event):
+        """Вставка текста"""
+        event.widget.event_generate('<<Paste>>')
+        return "break"
+    
+    def cut_text(self, event):
+        """Вырезание текста"""
+        event.widget.event_generate('<<Cut>>')
+        return "break"
+    
+    def navigate_down(self, event, current_index):
+        """Переход к следующему полю"""
+        next_index = (current_index + 1) % len(self.entry_fields)
+        self.entry_fields[next_index].focus_set()
+        return "break"
+    
+    def navigate_up(self, event, current_index):
+        """Переход к предыдущему полю"""
+        prev_index = (current_index - 1) % len(self.entry_fields)
+        self.entry_fields[prev_index].focus_set()
+        return "break"
+    
+    def navigate_tab(self, event, current_index):
+        """Обработка Tab - переход к следующему полю"""
+        next_index = (current_index + 1) % len(self.entry_fields)
+        self.entry_fields[next_index].focus_set()
+        return "break"
+
 
     #Функция отображения поля ввода по чекбоксам ПФО, ФИЗО, ЗУН
     def toggle_entry(self, checkbox):
@@ -433,6 +504,15 @@ class BasePage(ctk.CTkFrame):
             for row in table.rows:
                 for cell in row.cells:
                     for paragraph in cell.paragraphs:
+                        if '{{IDENTIFICATORS}}' in paragraph.text:
+                            original_alignment = paragraph.alignment
+                            paragraph.text = paragraph.text.replace(
+                                '{{IDENTIFICATORS}}', 
+                                replacements_dict['{{IDENTIFICATORS}}']
+                            )
+                            paragraph.alignment = original_alignment
+                            # Явно устанавливаем центрирование
+                            paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
                         for key, value in replacements_dict.items():
                             if key in paragraph.text:
                                 paragraph.text = paragraph.text.replace(key, value)
