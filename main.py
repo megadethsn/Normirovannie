@@ -147,7 +147,8 @@ class MultiSelectDropdown(ctk.CTkFrame):
         if len(self.selected) == 1:
             return self.selected[0]
         elif len(self.selected) == 2:
-            return f"""\n{'\n'.join(self.selected)}\n"""
+            joined_string = '\n'.join(self.selected)
+            return f"\n{joined_string}\n"
         else:
             return "\n".join(self.selected)
 
