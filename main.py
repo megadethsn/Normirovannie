@@ -162,7 +162,6 @@ class BasePage(ctk.CTkFrame):
         self.name = name
         self.east = east
         self.results = {}
-        self.entry_fields = []
         
 
 
@@ -273,67 +272,7 @@ class BasePage(ctk.CTkFrame):
         self.btn_save = ctk.CTkButton(self, text='Сформировать документ', font=self.font, command=self.save_data_and_form_doc)
         self.btn_save.grid(row=2, column=0, sticky='nsew')
 
-        self.setup_entry_bindings()
-
-    def setup_entry_bindings(self):
-        """Настройка горячих клавиш для всех Entry"""
-        entries = [
-            self.num_entry, self.issue_date_entry, self.work_date_entry,
-            self.entry_start_time, self.entry_end_time, self.entry_pfo,
-            self.entry_fizo, self.entry_zun
-        ]
         
-        for entry in entries:
-            if entry:  # проверяем, что entry существует
-                entry.bind("<Control-a>", lambda e: e.widget.select_range(0, 'end') or "break")
-                entry.bind("<Command-a>", lambda e: e.widget.select_range(0, 'end') or "break")
-                entry.bind("<Control-c>", self.copy_from_entry)
-                entry.bind("<Command-c>", self.copy_from_entry)
-                entry.bind("<Control-v>", self.paste_text)
-                entry.bind("<Command-v>", self.paste_text)
-                entry.bind("<Control-x>", self.cut_text)
-                entry.bind("<Command-x>", self.cut_text)
-                entry.bind('<Down>', lambda e, idx=i: self.navigate_down(e, idx))
-                entry.bind('<Up>', lambda e, idx=i: self.navigate_up(e, idx))
-                entry.bind('<Tab>', lambda e, idx=i: self.navigate_tab(e, idx))
-    
-    def copy_text(self, event):
-        """Копирование текста"""
-        event.widget.event_generate('<<Copy>>')
-        return "break"
-    
-    def paste_text(self, event):
-        """Вставка текста"""
-        event.widget.event_generate('<<Paste>>')
-        return "break"
-    
-    def cut_text(self, event):
-        """Вырезание текста"""
-        event.widget.event_generate('<<Cut>>')
-        return "break"
-
-    def select_all(self, event):
-        """Выделение всего текста"""
-        event.widget.select_range(0, 'end')
-        return "break"
-    
-    def navigate_down(self, event, current_index):
-        """Переход к следующему полю"""
-        next_index = (current_index + 1) % len(self.entry_fields)
-        self.entry_fields[next_index].focus_set()
-        return "break"
-    
-    def navigate_up(self, event, current_index):
-        """Переход к предыдущему полю"""
-        prev_index = (current_index - 1) % len(self.entry_fields)
-        self.entry_fields[prev_index].focus_set()
-        return "break"
-    
-    def navigate_tab(self, event, current_index):
-        """Обработка Tab - переход к следующему полю"""
-        next_index = (current_index + 1) % len(self.entry_fields)
-        self.entry_fields[next_index].focus_set()
-        return "break"
 
 
     #Функция отображения поля ввода по чекбоксам ПФО, ФИЗО, ЗУН
