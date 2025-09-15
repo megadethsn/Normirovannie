@@ -252,6 +252,9 @@ class BasePage(ctk.CTkFrame):
         self.cb_aliabiev = ctk.CTkCheckBox(self.info_frame, text='Алябьев А.Б.', font=self.font, variable=self.chief_var, onvalue='Алябьев', offvalue='')
         self.cb_aliabiev.grid(row=8, column=2, sticky='w')
 
+        self.cb_popirina = ctk.CTkCheckBox(self.info_frame, text='Попырина Е.М.', font=self.font, variable=self.chief_var, onvalue='Попырина', offvalue='')
+        self.cb_popirina.grid(row=8, column=3, sticky='w')
+
         #Исполнитель
         ctk.CTkLabel(self.info_frame, text='Укажите исполнителя:', font=self.font).grid(row=9, column=0, sticky='w')
         self.issuer = ctk.StringVar(value='')
@@ -379,6 +382,10 @@ class BasePage(ctk.CTkFrame):
         if self.chief_var.get() == 'Алябьев':
             selected.append('Заместитель начальника Службы')
             selected.append('А.Б. Алябьев')
+
+        if self.chief_var.get() == 'Попырина':
+            selected.append('Заместитель начальника отдела проверок сил ОТБ')
+            selected.append('Е.М. Попырина')
         
         return selected
     
