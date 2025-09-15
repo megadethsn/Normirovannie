@@ -449,6 +449,8 @@ class BasePage(ctk.CTkFrame):
                                 paragraph.text = paragraph.text.replace(key, value)
                                 
                                 paragraph.alignment = original_alignment
+                                if key == '{{JOB_TITLE}}':
+                                    table.autofit = True
                                 
                                 if key not in ('{{JOB_TITLE}}', '{{FULLNAME}}'):
                                     paragraph.alignment = WD_ALIGN_PARAGRAPH.CENTER
