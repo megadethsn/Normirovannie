@@ -201,7 +201,7 @@ class BasePage(ctk.CTkFrame):
         self.work_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.WORK_DATE)
         next_day = self.work_date(east=self.east)
         formatted_date_next = f'«{next_day.day}» {self.month_names[next_day.month]} {next_day.year} г.'
-        self.issue_date_entry.insert(0, formatted_date_next)
+        self.work_date_entry.insert(0, formatted_date_next)
         self.work_date_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Время проверки
