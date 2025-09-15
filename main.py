@@ -162,6 +162,11 @@ class BasePage(ctk.CTkFrame):
         self.name = name
         self.east = east
         self.results = {}
+        self.month_names = {
+            1: 'января', 2: 'февраля', 3: 'марта', 4: 'апреля',
+            5: 'мая', 6: 'июня', 7: 'июля', 8: 'августа',
+            9: 'сентября', 10: 'октября', 11: 'ноября', 12: 'декабря'
+        }
         
 
 
@@ -184,7 +189,9 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Дата формирования:', font=self.font).grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.ISSUE_DATE = ctk.StringVar()
         self.issue_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.ISSUE_DATE)
-        self.issue_date_entry.insert(0, datetime.now().strftime('«%d» %B %Y г.'))
+        now = datetime.now()
+        formatted_date = f'«{now.day}» {self.month_names[now.month]} {now.year} г.'
+        self.issue_date_entry.insert(0, formatted_date)
         self.issue_date_entry.grid(row=1, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Дата проверки
@@ -192,7 +199,9 @@ class BasePage(ctk.CTkFrame):
 
         self.WORK_DATE = ctk.StringVar()
         self.work_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.WORK_DATE)
-        self.work_date_entry.insert(0, self.work_date(east=self.east).strftime('%d %B %Y г.'))
+        now = self.work_date(east=self.east)
+        formatted_date = f'«{now.day}» {self.month_names[now.month]} {now.year} г.'
+        self.issue_date_entry.insert(0, formatted_date)
         self.work_date_entry.grid(row=2, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Время проверки
