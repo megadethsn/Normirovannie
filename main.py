@@ -510,49 +510,53 @@ class BasePage(ctk.CTkFrame):
             '{{EXAMS}}': self.get_exams(),
             '{{FIZO_UIN}}':'; '.join(self.formate_uins(self.fizo_value.get())) + '.'
         }
-        edited_doc = self.formate_docx(self.results, self.template)
-        default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
-        file_path = filedialog.asksaveasfilename(
-        defaultextension=".docx",
-        filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-        initialfile=default_filename,
-        title="Сохранить документ как"
-    )
-        
-        
-        if not file_path:
-            return
-        
-        edited_doc.save(file_path)
-        """try:
-            pdf_path = os.path.splitext(file_path)[0] + '.pdf'
-            convert(file_path, pdf_path)
-        except BaseException as e:
-            popup = ctk.CTkToplevel(self.info_frame)
-            popup.title('Ошибка!')
-            popup.geometry('300x100')
-            popup.resizable(False, False)
-
-            ctk.CTkLabel(popup, text=e.args).pack()
-            ctk.CTkButton(popup, text='Понятно', command=popup.destroy).pack()"""
-
-        if self.template_fizo_path and self.fizo_var.get():
-            fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-            default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
+        try:
+            edited_doc = self.formate_docx(self.results, self.template)
+            default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
             file_path = filedialog.asksaveasfilename(
-            defaultextension=".docx",
-            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-            initialfile=default_filename,
-            title="Сохранить документ как")
-
+                defaultextension=".docx",
+                filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
+                initialfile=default_filename,
+                title="Сохранить документ как"
+            )
+            
             if not file_path:
                 return
             
-            fizo_doc.save(file_path)
+            edited_doc.save(file_path)
 
-            """pdf_path = os.path.splitext(file_path)[0] + '.pdf'
-            convert(file_path, pdf_path)"""
-        
+            if self.template_fizo_path and self.fizo_var.get():
+                fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
+                default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
+                file_path = filedialog.asksaveasfilename(
+                    defaultextension=".docx",
+                    filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
+                    initialfile=default_filename,
+                    title="Сохранить документ как"
+                )
+
+                if not file_path:
+                    return
+                
+                fizo_doc.save(file_path)
+            
+            popup = ctk.CTkToplevel(self.info_frame)
+            popup.title("Уведомление")
+            popup.geometry("300x100")
+            popup.resizable(False, False)
+            
+            ctk.CTkLabel(popup, text="Документ сформирован!").pack(pady=20)
+            ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=5)
+            
+        except Exception as e:
+            popup = ctk.CTkToplevel(self.info_frame)
+            popup.title("Ошибка")
+            popup.geometry("400x100")
+            popup.resizable(False, False)
+            
+            ctk.CTkLabel(popup, text=f"Ошибка при формировании документа: {str(e)}").pack(pady=20)
+            ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=5)
+
         
         
 
