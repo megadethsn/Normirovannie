@@ -653,6 +653,13 @@ class BasePage(ctk.CTkFrame):
             )
             
             if not file_path:
+                popup = ctk.ctkTopLevel(self.info_frame)
+                popup.title("Уведомление")
+                popup.geometry("300x100")
+                popup.resizable(False, False)
+                
+                ctk.CTkLabel(popup, text=file_path).pack(pady=20)
+                ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=5)
                 return
             
             edited_doc.save(file_path)
