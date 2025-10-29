@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 import locale
 from tkinter import filedialog
 import sys
+import os
 
 from docx import Document
 from docx.shared import Pt
@@ -556,6 +557,40 @@ class BasePage(ctk.CTkFrame):
             return f'{res} часов' if res >= 5 else f'{res} часа'
         except:
             return '6 часов'
+    
+    def convert_to_pdf(self, docx_path, pdf_path):
+        try:
+            import comtypes.client
+            
+            word = comtypes.client.CreateObject('Word.Application')
+            word.Visible = False
+            
+            try:
+                doc = word.Documents.Open(docx_path)
+                doc.SaveAs(pdf_path, FileFormat=17)
+                
+                doc.Close()
+                
+                return True
+                
+            except Exception as e:
+                print(f"Ошибка при конвертации: {e}")
+                return False
+                
+            finally:
+                # Закрываем Word
+                word.Quit()
+                
+        except ImportError:
+            try:
+                from docx2pdf import convert
+                convert(docx_path, pdf_path)
+                return True
+            except Exception:
+                return False
+        except Exception as e:
+            print(f"Общая ошибка конвертации: {e}")
+            return False
 
     #Функция замены меток в документах
     def formate_docx(self, replacements_dict, template):
@@ -618,17 +653,19 @@ class BasePage(ctk.CTkFrame):
         total_uins, exams_str, types_str = self.get_uins()
         job_title, fullname = self.get_result_chief()
         issuer, email = self.get_result_issuer()
+        ids = ('; '.join(total_uins) + '.').strip() if len(total_uins) > 1 else total_uins[0].strip()
+        fizo_ids = '; '.join(self.formate_uins(self.fizo_value.get())) + '.' if len(self.formate_uins(self.fizo_value.get())) > 1 else self.formate_uins(self.fizo_value.get())
         
         # Получаем номер заявки ФИЗО, если есть
         fizo_number = self.fizo_number_var.get() if hasattr(self, 'fizo_number_var') and self.fizo_var.get() else ''
-        
+
         self.results = {
             '{{NUMBER}}': self.num_var.get(),
             '{{NUMBER_FIZO}}': fizo_number,
             '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get().lower(),
             '{{DATE_TO_WORK}}': self.WORK_DATE.get().lower(),
             '{{TYPE_OF_EXAMS}}': types_str,
-            '{{IDENTIFICATORS}}': ('; '.join(total_uins) + '.').strip(),
+            '{{IDENTIFICATORS}}': ids,
             '{{EXAMS_P2}}': exams_str,
             '{{TIME}}': time,
             '{{EST_TIME}}': self.est_time(),
@@ -638,7 +675,7 @@ class BasePage(ctk.CTkFrame):
             '{{ISSUER}}': issuer,
             '{{EMAIL}}': email,
             '{{EXAMS}}': self.get_exams(),
-            '{{FIZO_UIN}}':'; '.join(self.formate_uins(self.fizo_value.get())) + '.'
+            '{{FIZO_UIN}}':fizo_ids
         }
         
         try:
@@ -655,6 +692,9 @@ class BasePage(ctk.CTkFrame):
                 return
             
             edited_doc.save(file_path)
+            pdf_file_path = file_path.replace('.docx', '.pdf')
+            self.convert_to_pdf(file_path, pdf_file_path)
+            
 
             if self.template_fizo_path and self.fizo_var.get():
                 fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
@@ -670,6 +710,8 @@ class BasePage(ctk.CTkFrame):
                     return
                 
                 fizo_doc.save(file_path)
+                pdf_file_path = file_path.replace('.docx', '.pdf')
+                self.convert_to_pdf(file_path, pdf_file_path)
             
             popup = ctk.CTkToplevel(self.info_frame)
             popup.title("Уведомление")
