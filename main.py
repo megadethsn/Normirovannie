@@ -1,10 +1,12 @@
 import customtkinter as ctk
 from datetime import datetime, timedelta
 import locale
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import sys
 import os
 import platform
+import subprocess
+import tempfile
 
 # Проверка версии Windows для совместимости
 IS_WINDOWS_7 = platform.system() == "Windows" and platform.release() == "7"
@@ -619,59 +621,146 @@ class BasePage(ctk.CTkFrame):
         except:
             return '6 часов'
     
-    def convert_to_pdf(self, docx_path, pdf_path):
-        """Конвертация DOCX в PDF с улучшенной совместимостью для Windows 7"""
+    def check_word_installation(self):
+        """Проверяет, установлен ли Microsoft Word"""
         try:
-            # Попытка 1: Использование comtypes (наиболее надежный способ для Windows)
+            import winreg
             try:
-                import comtypes.client
-                
-                word = comtypes.client.CreateObject('Word.Application')
-                word.Visible = False
-                
-                try:
-                    # Конвертация в абсолютные пути для избежания проблем с путями
-                    docx_abs_path = os.path.abspath(docx_path)
-                    pdf_abs_path = os.path.abspath(pdf_path)
-                    
-                    doc = word.Documents.Open(docx_abs_path)
-                    doc.SaveAs(pdf_abs_path, FileFormat=17)  # 17 = PDF format
-                    doc.Close()
-                    
-                    print(f"Успешно сконвертировано в PDF: {pdf_path}")
-                    return True
-                    
-                except Exception as e:
-                    print(f"Ошибка при конвертации через Word: {e}")
-                    return False
-                    
-                finally:
-                    try:
-                        word.Quit()
-                    except:
-                        pass
-                        
-            except ImportError:
-                print("comtypes не установлен, пробуем альтернативные методы")
-            
-            # Попытка 2: Использование docx2pdf если установлен
-            try:
-                from docx2pdf import convert
-                convert(docx_path, pdf_path)
-                print(f"Успешно сконвертировано через docx2pdf: {pdf_path}")
+                # Проверяем наличие Word в реестре
+                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Office")
+                winreg.CloseKey(key)
                 return True
-            except ImportError:
-                print("docx2pdf не установлен")
+            except:
+                return False
+        except:
+            return False
+
+    def convert_to_pdf_using_word(self, docx_path, pdf_path):
+        """Конвертация через Microsoft Word (самый надежный способ)"""
+        try:
+            import comtypes.client
+            
+            print("Попытка конвертации через Microsoft Word...")
+            word = comtypes.client.CreateObject('Word.Application')
+            word.Visible = False
+            
+            try:
+                # Конвертация в абсолютные пути
+                docx_abs_path = os.path.abspath(docx_path)
+                pdf_abs_path = os.path.abspath(pdf_path)
+                
+                print(f"Открываем документ: {docx_abs_path}")
+                doc = word.Documents.Open(docx_abs_path)
+                
+                print(f"Сохраняем как PDF: {pdf_abs_path}")
+                doc.SaveAs(pdf_abs_path, FileFormat=17)  # 17 = PDF format
+                doc.Close()
+                
+                print("Конвертация успешно завершена!")
+                return True
+                
             except Exception as e:
-                print(f"Ошибка при конвертации через docx2pdf: {e}")
-            
-            # Попытка 3: Если конвертация не удалась, просто копируем DOCX файл
-            print("Конвертация в PDF не удалась, сохраняем только DOCX файл")
+                print(f"Ошибка при конвертации через Word: {e}")
+                return False
+                
+            finally:
+                try:
+                    word.Quit()
+                except:
+                    pass
+                    
+        except ImportError:
+            print("comtypes не установлен")
             return False
-            
         except Exception as e:
-            print(f"Общая ошибка конвертации: {e}")
+            print(f"Общая ошибка при конвертации через Word: {e}")
             return False
+
+    def convert_to_pdf_using_libreoffice(self, docx_path, pdf_path):
+        """Конвертация через LibreOffice (альтернатива)"""
+        try:
+            # Проверяем наличие LibreOffice
+            libreoffice_paths = [
+                r"C:\Program Files\LibreOffice\program\soffice.exe",
+                r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
+                r"C:\Program Files\LibreOffice\program\soffice.com",
+                r"C:\Program Files (x86)\LibreOffice\program\soffice.com"
+            ]
+            
+            libreoffice_exe = None
+            for path in libreoffice_paths:
+                if os.path.exists(path):
+                    libreoffice_exe = path
+                    break
+            
+            if not libreoffice_exe:
+                print("LibreOffice не найден")
+                return False
+            
+            # Конвертируем через LibreOffice
+            cmd = [
+                libreoffice_exe,
+                '--headless',
+                '--convert-to', 'pdf',
+                '--outdir', os.path.dirname(pdf_path),
+                docx_path
+            ]
+            
+            print(f"Запускаем LibreOffice: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
+            
+            if result.returncode == 0:
+                print("Конвертация через LibreOffice успешна!")
+                return True
+            else:
+                print(f"Ошибка LibreOffice: {result.stderr}")
+                return False
+                
+        except Exception as e:
+            print(f"Ошибка при конвертации через LibreOffice: {e}")
+            return False
+
+    def convert_to_pdf_using_online(self, docx_path, pdf_path):
+        """Предлагает онлайн конвертацию"""
+        print("Онлайн конвертация не реализована")
+        return False
+
+    def convert_to_pdf(self, docx_path, pdf_path):
+        """Основная функция конвертации с несколькими попытками"""
+        print(f"Начало конвертации: {docx_path} -> {pdf_path}")
+        
+        # Попытка 1: Через Microsoft Word
+        if self.check_word_installation():
+            print("Обнаружен Microsoft Word, пробуем конвертацию...")
+            if self.convert_to_pdf_using_word(docx_path, pdf_path):
+                return True
+            else:
+                print("Конвертация через Word не удалась")
+        else:
+            print("Microsoft Word не обнаружен")
+        
+        # Попытка 2: Через LibreOffice
+        print("Пробуем конвертацию через LibreOffice...")
+        if self.convert_to_pdf_using_libreoffice(docx_path, pdf_path):
+            return True
+        else:
+            print("Конвертация через LibreOffice не удалась")
+        
+        # Попытка 3: Онлайн методы (заглушка)
+        print("Рекомендуется использовать онлайн конвертацию")
+        
+        # Показываем инструкцию для пользователя
+        message = (
+            "Автоматическая конвертация в PDF не удалась.\n\n"
+            "Рекомендуемые действия:\n"
+            "1. Откройте созданный DOCX файл в Microsoft Word\n"
+            "2. Сохраните как PDF (Файл → Сохранить как → PDF)\n"
+            "3. Или используйте онлайн конвертер: smallpdf.com/word-to-pdf\n\n"
+            f"DOCX файл сохранен: {docx_path}"
+        )
+        
+        messagebox.showwarning("Конвертация в PDF", message)
+        return False
 
     #Функция замены меток в документах
     def formate_docx(self, replacements_dict, template):
