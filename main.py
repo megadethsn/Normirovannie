@@ -1,20 +1,9 @@
 import customtkinter as ctk
 from datetime import datetime, timedelta
 import locale
-from tkinter import filedialog, messagebox
+from tkinter import filedialog
 import sys
 import os
-import platform
-import subprocess
-import tempfile
-
-# Проверка версии Windows для совместимости
-IS_WINDOWS_7 = platform.system() == "Windows" and platform.release() == "7"
-
-if IS_WINDOWS_7:
-    # Настройки для улучшения совместимости с Windows 7
-    ctk.set_widget_scaling(0.9)
-    ctk.set_window_scaling(0.9)
 
 from docx import Document
 from docx.shared import Pt
@@ -50,11 +39,7 @@ class App(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Генератор нормированных заданий")
-        
-        if IS_WINDOWS_7:
-            self.geometry("900x600")  # Меньший размер для Windows 7
-        else:
-            self.geometry("1000x700")
+        self.geometry("1000x700")  
         
         # Главный контейнер для страниц
         self.container = ctk.CTkFrame(self)
@@ -171,9 +156,6 @@ class BasePage(ctk.CTkFrame):
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(0, weight=1) 
         self.font = ('TimesNewRoman', 13)
-        if IS_WINDOWS_7:
-            self.font = ('Times New Roman', 12)  # Более совместимый шрифт для Windows 7
-        
         self.template = template
         self.template_fizo_path = template_fizo_path
         self.name = name
@@ -188,8 +170,7 @@ class BasePage(ctk.CTkFrame):
         self.annotation_frame = ctk.CTkFrame(master=self)
         self.annotation_frame.grid(row=0, column=0, padx=20, pady=10, sticky="nsew")
 
-        ctk.CTkLabel(self.annotation_frame, text='Выберите необходимые параметры', 
-                    font=('TimesNewRoman', 18) if IS_WINDOWS_7 else ('TimesNewRoman', 20)).grid(row=1, column=0, columnspan=4, sticky='nsew')
+        ctk.CTkLabel(self.annotation_frame, text='Выберите необходимые параметры', font=('TimesNewRoman', 20)).grid(row=1, column=0, columnspan=4, sticky='nsew')
 
         self.info_frame = ctk.CTkFrame(master=self)
         self.info_frame.grid(row=1, column=0, padx=20, pady=10, sticky='nsew')
@@ -198,14 +179,13 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Номер заявки:', font=self.font).grid(row=0, column=0, padx=5, pady=5, sticky='w')
 
         self.num_var = ctk.StringVar()
-        self.num_entry = ctk.CTkEntry(self.info_frame, width=250 if IS_WINDOWS_7 else 300, 
-                                     textvariable=self.num_var, placeholder_text='Номер заявки по нормированному заданию')
+        self.num_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.num_var, placeholder_text='Номер заявки по нормированному заданию')
         self.num_entry.grid(row=0, column=1, columnspan=3, padx=5, pady=5, sticky='ew')
 
         # Дата формирования
         ctk.CTkLabel(self.info_frame, text='Дата формирования:', font=self.font).grid(row=1, column=0, padx=5, pady=5, sticky='w')
         self.ISSUE_DATE = ctk.StringVar()
-        self.issue_date_entry = ctk.CTkEntry(self.info_frame, width=250 if IS_WINDOWS_7 else 300, textvariable=self.ISSUE_DATE)
+        self.issue_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.ISSUE_DATE)
         now = datetime.now()
         formatted_date = f'«{now.day}» {self.month_names[now.month]} {now.year} г.'
         self.issue_date_entry.insert(0, formatted_date)
@@ -215,7 +195,7 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Дата проведения проверки:', font=self.font).grid(row=2, column=0, padx=5, pady=5, sticky='w')
 
         self.WORK_DATE = ctk.StringVar()
-        self.work_date_entry = ctk.CTkEntry(self.info_frame, width=250 if IS_WINDOWS_7 else 300, textvariable=self.WORK_DATE)
+        self.work_date_entry = ctk.CTkEntry(self.info_frame, width=300, textvariable=self.WORK_DATE)
         next_day = self.work_date(east=self.east)
         formatted_date_next = f'{next_day.day} {self.month_names[next_day.month]} {next_day.year} г.'
         self.work_date_entry.insert(0, formatted_date_next)
@@ -225,14 +205,14 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Время проведения проверки:', font=self.font).grid(row=3, column=0, padx=5, pady=5, sticky='w')
         
         self.TIME_START = ctk.StringVar()
-        self.entry_start_time = ctk.CTkEntry(self.info_frame, width=80 if IS_WINDOWS_7 else 100, textvariable=self.TIME_START)
+        self.entry_start_time = ctk.CTkEntry(self.info_frame, width=100, textvariable=self.TIME_START)
         self.entry_start_time.insert(0, '10:00')
         self.entry_start_time.grid(row=3, column=1, padx=5, pady=5, sticky='w')
         
         ctk.CTkLabel(self.info_frame, text='-').grid(row=3, column=2, padx=5, pady=5)
         
         self.TIME_END = ctk.StringVar()
-        self.entry_end_time = ctk.CTkEntry(self.info_frame, width=80 if IS_WINDOWS_7 else 100, textvariable=self.TIME_END)
+        self.entry_end_time = ctk.CTkEntry(self.info_frame, width=100,textvariable=self.TIME_END)
         self.entry_end_time.insert(0, '16:00')
         self.entry_end_time.grid(row=3, column=3, padx=5, pady=5, sticky='w')
 
@@ -275,30 +255,24 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Выберите должностное лицо:', font=self.font).grid(row=8, column=0, pady=5, sticky='w')
 
         self.chief_var = ctk.StringVar(value='')
-        self.cb_bezzubcev = ctk.CTkCheckBox(self.info_frame, text='Беззубцев А.А.', font=self.font, 
-                                           variable=self.chief_var, onvalue='Беззубцев', offvalue='')
+        self.cb_bezzubcev = ctk.CTkCheckBox(self.info_frame, text='Беззубцев А.А.', font=self.font, variable=self.chief_var, onvalue='Беззубцев', offvalue='')
         self.cb_bezzubcev.grid(row=8, column=1, sticky='w')
 
-        self.cb_aliabiev = ctk.CTkCheckBox(self.info_frame, text='Алябьев А.Б.', font=self.font, 
-                                          variable=self.chief_var, onvalue='Алябьев', offvalue='')
+        self.cb_aliabiev = ctk.CTkCheckBox(self.info_frame, text='Алябьев А.Б.', font=self.font, variable=self.chief_var, onvalue='Алябьев', offvalue='')
         self.cb_aliabiev.grid(row=8, column=2, sticky='w')
 
-        self.cb_popirina = ctk.CTkCheckBox(self.info_frame, text='Попырина Е.М.', font=self.font, 
-                                          variable=self.chief_var, onvalue='Попырина', offvalue='')
+        self.cb_popirina = ctk.CTkCheckBox(self.info_frame, text='Попырина Е.М.', font=self.font, variable=self.chief_var, onvalue='Попырина', offvalue='')
         self.cb_popirina.grid(row=8, column=3, sticky='w')
 
         #Исполнитель
         ctk.CTkLabel(self.info_frame, text='Укажите исполнителя:', font=self.font).grid(row=9, column=0, sticky='w')
         self.issuer = ctk.StringVar(value='')
 
-        self.cb_marusya = ctk.CTkCheckBox(self.info_frame, text='Разгуляева М.А.', font=self.font, 
-                                         variable=self.issuer, onvalue='Маруся', offvalue='')
+        self.cb_marusya = ctk.CTkCheckBox(self.info_frame, text='Разгуляева М.А.', font=self.font, variable=self.issuer, onvalue='Маруся', offvalue='')
         self.cb_marusya.grid(row=9, column=1, sticky='w')
-        self.cb_vantuz = ctk.CTkCheckBox(self.info_frame, text='Воротилов И.И.', font=self.font, 
-                                        variable=self.issuer, onvalue='Вантуз', offvalue='')
+        self.cb_vantuz = ctk.CTkCheckBox(self.info_frame, text='Воротилов И.И.', font=self.font, variable=self.issuer, onvalue='Вантуз', offvalue='')
         self.cb_vantuz.grid(row=9, column=2, sticky='w')
-        self.cb_creator = ctk.CTkCheckBox(self.info_frame, text='Желудков А.В.', font=self.font, 
-                                         variable=self.issuer, onvalue='Создатель!!!', offvalue='')
+        self.cb_creator = ctk.CTkCheckBox(self.info_frame, text='Желудков А.В.', font=self.font, variable=self.issuer, onvalue='Создатель!!!', offvalue='')
         self.cb_creator.grid(row=9, column=3, sticky='w')
         
 
@@ -329,42 +303,14 @@ class BasePage(ctk.CTkFrame):
         
         for widget in widgets:
             if hasattr(widget, 'bind'):
-                # Навигация стрелками
-                widget.bind('<Up>', self.navigate_up)
-                widget.bind('<Down>', self.navigate_down)
-                
-                # Копирование-вставка
-                if hasattr(widget, 'get') and hasattr(widget, 'selection_get'):
-                    widget.bind('<Control-c>', self.copy_text)
-                    widget.bind('<Control-x>', self.cut_text)
-                    widget.bind('<Control-v>', self.paste_text)
-                
-                # Навигация Tab/Shift+Tab
-                widget.bind('<Tab>', self.navigate_tab)
-                widget.bind('<Shift-Tab>', self.navigate_shift_tab)
-
-    def navigate_up(self, event):
-        """Навигация вверх"""
-        self.navigate(event, -1)
-        return "break"
-
-    def navigate_down(self, event):
-        """Навигация вниз"""
-        self.navigate(event, 1)
-        return "break"
-
-    def navigate_tab(self, event):
-        """Навигация Tab"""
-        self.navigate(event, 1)
-        return "break"
-
-    def navigate_shift_tab(self, event):
-        """Навигация Shift+Tab"""
-        self.navigate(event, -1)
-        return "break"
+                widget.bind('<Up>', lambda e: self.navigate(e, -1))
+                widget.bind('<Down>', lambda e: self.navigate(e, 1))
+                widget.bind('<Control-c>', self.copy_text)
+                widget.bind('<Control-x>', self.cut_text)
+                widget.bind('<Control-v>', self.paste_text)
 
     def navigate(self, event, direction):
-        """Навигация по полям ввода"""
+        """Навигация по полям ввода с помощью стрелок"""
         widgets = [
             self.num_entry, self.issue_date_entry, self.work_date_entry,
             self.entry_start_time, self.entry_end_time,
@@ -381,45 +327,36 @@ class BasePage(ctk.CTkFrame):
             index = widgets.index(current)
             new_index = (index + direction) % len(widgets)
             widgets[new_index].focus_set()
-            
-            # Для CTkEntry устанавливаем курсор в конец
-            if hasattr(widgets[new_index], 'icursor'):
-                widgets[new_index].icursor('end')
-                
         except ValueError:
             pass
+        
+        return "break"
 
     def copy_text(self, event):
         """Копирование текста"""
-        try:
-            if hasattr(event.widget, 'selection_get'):
-                selected_text = event.widget.selection_get()
-                self.clipboard_clear()
-                self.clipboard_append(selected_text)
-        except Exception:
-            pass
+        if hasattr(event.widget, 'get'):
+            selected_text = event.widget.selection_get()
+            self.clipboard_clear()
+            self.clipboard_append(selected_text)
         return "break"
 
     def cut_text(self, event):
         """Вырезание текста"""
-        try:
-            if hasattr(event.widget, 'selection_get') and hasattr(event.widget, 'delete'):
-                selected_text = event.widget.selection_get()
-                self.clipboard_clear()
-                self.clipboard_append(selected_text)
-                event.widget.delete("sel.first", "sel.last")
-        except Exception:
-            pass
+        if hasattr(event.widget, 'get') and hasattr(event.widget, 'delete'):
+            selected_text = event.widget.selection_get()
+            self.clipboard_clear()
+            self.clipboard_append(selected_text)
+            event.widget.delete("sel.first", "sel.last")
         return "break"
 
     def paste_text(self, event):
         """Вставка текста"""
-        try:
-            if hasattr(event.widget, 'insert'):
+        if hasattr(event.widget, 'insert'):
+            try:
                 text = self.clipboard_get()
                 event.widget.insert("insert", text)
-        except Exception:
-            pass
+            except:
+                pass
         return "break"
 
     def on_show(self):
@@ -621,146 +558,39 @@ class BasePage(ctk.CTkFrame):
         except:
             return '6 часов'
     
-    def check_word_installation(self):
-        """Проверяет, установлен ли Microsoft Word"""
-        try:
-            import winreg
-            try:
-                # Проверяем наличие Word в реестре
-                key = winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Office")
-                winreg.CloseKey(key)
-                return True
-            except:
-                return False
-        except:
-            return False
-
-    def convert_to_pdf_using_word(self, docx_path, pdf_path):
-        """Конвертация через Microsoft Word (самый надежный способ)"""
+    def convert_to_pdf(self, docx_path, pdf_path):
         try:
             import comtypes.client
             
-            print("Попытка конвертации через Microsoft Word...")
             word = comtypes.client.CreateObject('Word.Application')
             word.Visible = False
             
             try:
-                # Конвертация в абсолютные пути
-                docx_abs_path = os.path.abspath(docx_path)
-                pdf_abs_path = os.path.abspath(pdf_path)
+                doc = word.Documents.Open(docx_path)
+                doc.SaveAs(pdf_path, FileFormat=17)
                 
-                print(f"Открываем документ: {docx_abs_path}")
-                doc = word.Documents.Open(docx_abs_path)
-                
-                print(f"Сохраняем как PDF: {pdf_abs_path}")
-                doc.SaveAs(pdf_abs_path, FileFormat=17)  # 17 = PDF format
                 doc.Close()
                 
-                print("Конвертация успешно завершена!")
                 return True
                 
             except Exception as e:
-                print(f"Ошибка при конвертации через Word: {e}")
+                print(f"Ошибка при конвертации: {e}")
                 return False
                 
             finally:
-                try:
-                    word.Quit()
-                except:
-                    pass
-                    
-        except ImportError:
-            print("comtypes не установлен")
-            return False
-        except Exception as e:
-            print(f"Общая ошибка при конвертации через Word: {e}")
-            return False
-
-    def convert_to_pdf_using_libreoffice(self, docx_path, pdf_path):
-        """Конвертация через LibreOffice (альтернатива)"""
-        try:
-            # Проверяем наличие LibreOffice
-            libreoffice_paths = [
-                r"C:\Program Files\LibreOffice\program\soffice.exe",
-                r"C:\Program Files (x86)\LibreOffice\program\soffice.exe",
-                r"C:\Program Files\LibreOffice\program\soffice.com",
-                r"C:\Program Files (x86)\LibreOffice\program\soffice.com"
-            ]
-            
-            libreoffice_exe = None
-            for path in libreoffice_paths:
-                if os.path.exists(path):
-                    libreoffice_exe = path
-                    break
-            
-            if not libreoffice_exe:
-                print("LibreOffice не найден")
-                return False
-            
-            # Конвертируем через LibreOffice
-            cmd = [
-                libreoffice_exe,
-                '--headless',
-                '--convert-to', 'pdf',
-                '--outdir', os.path.dirname(pdf_path),
-                docx_path
-            ]
-            
-            print(f"Запускаем LibreOffice: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
-            
-            if result.returncode == 0:
-                print("Конвертация через LibreOffice успешна!")
-                return True
-            else:
-                print(f"Ошибка LibreOffice: {result.stderr}")
-                return False
+                # Закрываем Word
+                word.Quit()
                 
-        except Exception as e:
-            print(f"Ошибка при конвертации через LibreOffice: {e}")
-            return False
-
-    def convert_to_pdf_using_online(self, docx_path, pdf_path):
-        """Предлагает онлайн конвертацию"""
-        print("Онлайн конвертация не реализована")
-        return False
-
-    def convert_to_pdf(self, docx_path, pdf_path):
-        """Основная функция конвертации с несколькими попытками"""
-        print(f"Начало конвертации: {docx_path} -> {pdf_path}")
-        
-        # Попытка 1: Через Microsoft Word
-        if self.check_word_installation():
-            print("Обнаружен Microsoft Word, пробуем конвертацию...")
-            if self.convert_to_pdf_using_word(docx_path, pdf_path):
+        except ImportError:
+            try:
+                from docx2pdf import convert
+                convert(docx_path, pdf_path)
                 return True
-            else:
-                print("Конвертация через Word не удалась")
-        else:
-            print("Microsoft Word не обнаружен")
-        
-        # Попытка 2: Через LibreOffice
-        print("Пробуем конвертацию через LibreOffice...")
-        if self.convert_to_pdf_using_libreoffice(docx_path, pdf_path):
-            return True
-        else:
-            print("Конвертация через LibreOffice не удалась")
-        
-        # Попытка 3: Онлайн методы (заглушка)
-        print("Рекомендуется использовать онлайн конвертацию")
-        
-        # Показываем инструкцию для пользователя
-        message = (
-            "Автоматическая конвертация в PDF не удалась.\n\n"
-            "Рекомендуемые действия:\n"
-            "1. Откройте созданный DOCX файл в Microsoft Word\n"
-            "2. Сохраните как PDF (Файл → Сохранить как → PDF)\n"
-            "3. Или используйте онлайн конвертер: smallpdf.com/word-to-pdf\n\n"
-            f"DOCX файл сохранен: {docx_path}"
-        )
-        
-        messagebox.showwarning("Конвертация в PDF", message)
-        return False
+            except Exception:
+                return False
+        except Exception as e:
+            print(f"Общая ошибка конвертации: {e}")
+            return False
 
     #Функция замены меток в документах
     def formate_docx(self, replacements_dict, template):
@@ -862,11 +692,10 @@ class BasePage(ctk.CTkFrame):
                 return
             
             edited_doc.save(file_path)
-            
-            # Пытаемся сконвертировать в PDF
             pdf_file_path = file_path.replace('.docx', '.pdf')
-            pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
+            self.convert_to_pdf(file_path, pdf_file_path)
             
+
             if self.template_fizo_path and self.fizo_var.get():
                 fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
                 default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
@@ -881,22 +710,15 @@ class BasePage(ctk.CTkFrame):
                     return
                 
                 fizo_doc.save(file_path)
-                # Пытаемся сконвертировать в PDF
                 pdf_file_path = file_path.replace('.docx', '.pdf')
                 self.convert_to_pdf(file_path, pdf_file_path)
             
-            # Показываем уведомление о результате
             popup = ctk.CTkToplevel(self.info_frame)
             popup.title("Уведомление")
-            popup.geometry("350x120" if IS_WINDOWS_7 else "300x100")
+            popup.geometry("300x100")
             popup.resizable(False, False)
             
-            if pdf_success:
-                message = "Документ сформирован! (DOCX + PDF)"
-            else:
-                message = "Документ сформирован! (только DOCX - PDF не создан)"
-                
-            ctk.CTkLabel(popup, text=message, font=self.font).pack(pady=20)
+            ctk.CTkLabel(popup, text="Документ сформирован!").pack(pady=20)
             ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=5)
             
         except Exception as e:
@@ -914,8 +736,7 @@ class MainPage(ctk.CTkFrame):
         self.controller = controller
         
         # Заголовок
-        self.label = ctk.CTkLabel(self, text="Главная страница", 
-                                 font=("TimesNewRoman", 20) if IS_WINDOWS_7 else ("TimesNewRoman", 24))
+        self.label = ctk.CTkLabel(self, text="Главная страница", font=("TimesNewRoman", 24))
         self.label.grid(row=0, column=0, columnspan=3, pady=20, padx=20)
         
         # Кнопки для перехода на другие страницы
@@ -939,6 +760,7 @@ class MainPage(ctk.CTkFrame):
             ('Владивосток', 'Vladivostok')
         ]
         
+        
         for i, (text, page) in enumerate(buttons):
             row = i // 3 + 1  
             col = i % 3
@@ -946,10 +768,10 @@ class MainPage(ctk.CTkFrame):
                 self, 
                 text=text,
                 command=lambda p=page: controller.show_page(p),
-                height=35 if IS_WINDOWS_7 else 40,
-                width=180 if IS_WINDOWS_7 else 200
+                height=40,
+                width=200
             )
-            btn.grid(row=row, column=col, pady=8, padx=8, sticky='nsew')
+            btn.grid(row=row, column=col, pady=10, padx=10, sticky='nsew')
         
         close_btn = ctk.CTkButton(
             self,
@@ -957,8 +779,8 @@ class MainPage(ctk.CTkFrame):
             command=self.controller.quit,
             fg_color="red",
             hover_color="darkred",
-            height=35 if IS_WINDOWS_7 else 40,
-            width=180 if IS_WINDOWS_7 else 200
+            height=40,
+            width=200
         )
         close_btn.grid(row=len(buttons)//3 + 2, column=1, pady=20, padx=10, sticky='nsew')
 
