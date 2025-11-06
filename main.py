@@ -568,107 +568,188 @@ class BasePage(ctk.CTkFrame):
     
     def convert_to_pdf(self, docx_path, pdf_path):
         """
-        Конвертация DOCX в PDF используя MS Word 2016
-        с отображением ошибок через popup
+        Улучшенная конвертация DOCX в PDF с детальной диагностикой
         """
-        max_retries = 2
-        retry_delay = 2  
-        
-        for attempt in range(max_retries):
+        try:
+            # Проверяем существование исходного файла
+            if not os.path.exists(docx_path):
+                self.show_error_popup("Ошибка конвертации", 
+                                    f"Исходный файл не найден:\n{docx_path}")
+                return False
+
+            # Проверяем размер файла
+            file_size = os.path.getsize(docx_path)
+            if file_size == 0:
+                self.show_error_popup("Ошибка конвертации", 
+                                    "Исходный файл пустой")
+                return False
+
+            import comtypes.client
+            import time
+
+            word = None
+            doc = None
+
             try:
-                import comtypes.client
-                import time
-                
-                # Создаем объект Word
+                # Пытаемся создать объект Word
+                self.show_info_popup("Конвертация", "Запуск MS Word...")
                 word = comtypes.client.CreateObject('Word.Application')
                 word.Visible = False
-                word.DisplayAlerts = False  # Отключаем предупреждения
+                word.DisplayAlerts = False
+                
+                # Ждем инициализации Word
+                time.sleep(3)
+
+                # Пытаемся открыть документ
+                self.show_info_popup("Конвертация", "Открытие документа...")
+                doc_path = os.path.abspath(docx_path)  # Абсолютный путь
+                doc = word.Documents.Open(doc_path)
+                time.sleep(2)
+
+                # Проверяем, что документ открылся
+                if doc is None:
+                    self.show_error_popup("Ошибка конвертации", 
+                                        "Не удалось открыть документ в Word")
+                    return False
+
+                # Пытаемся сохранить как PDF
+                self.show_info_popup("Конвертация", "Сохранение как PDF...")
+                pdf_path_abs = os.path.abspath(pdf_path)
+                
+                # Пробуем разные форматы сохранения
+                try:
+                    doc.SaveAs(pdf_path_abs, FileFormat=17)  # PDF
+                except Exception as format_error:
+                    # Пробуем альтернативный формат
+                    try:
+                        doc.SaveAs(pdf_path_abs, FileFormat=18)  # PDF/XPS
+                    except:
+                        raise format_error
+
+                time.sleep(2)
+
+                # Проверяем, что PDF файл создался
+                if os.path.exists(pdf_path_abs) and os.path.getsize(pdf_path_abs) > 0:
+                    self.show_info_popup("Успех", "Конвертация завершена успешно!")
+                    return True
+                else:
+                    self.show_error_popup("Ошибка конвертации", 
+                                        "PDF файл не был создан")
+                    return False
+
+            except Exception as e:
+                error_details = f"""
+    Ошибка конвертации Word в PDF:
+
+    Детали:
+    - Исходный файл: {docx_path}
+    - Целевой файл: {pdf_path}
+    - Размер исходного: {file_size} байт
+    - Ошибка: {str(e)}
+
+    Возможные причины:
+    1. MS Word не активирован
+    2. Недостаточно прав
+    3. Поврежденный документ
+    4. Проблема с путями к файлам
+
+    Рекомендации:
+    - Убедитесь, что MS Word 2016 активирован
+    - Проверьте, что файлы не открыты в других программах
+    - Попробуйте сохранить в другую папку
+    """
+                self.show_error_popup("Ошибка конвертации PDF", error_details)
+                return False
+
+            finally:
+                # Всегда закрываем документ и Word
+                try:
+                    if doc:
+                        doc.Close(SaveChanges=False)
+                except:
+                    pass
                 
                 try:
-                    # Открываем документ
-                    doc = word.Documents.Open(docx_path)
-                    time.sleep(1)
-                    
-                    # Конвертируем в PDF
-                    doc.SaveAs(pdf_path, FileFormat=17)
-                    time.sleep(1)
-                    
-                    # Закрываем документ
-                    doc.Close(SaveChanges=False)
-                    
-                    # Успешная конвертация
-                    return True
-                    
-                except Exception as e:
-                    error_msg = f"Ошибка при работе с документом (попытка {attempt + 1}): {str(e)}"
-                    print(error_msg)
-                    
-                    if attempt < max_retries - 1:
-                        time.sleep(retry_delay)
-                    continue
-                    
-                finally:
-                    # Всегда пытаемся закрыть Word
-                    try:
+                    if word:
                         word.Quit()
-                        time.sleep(1)
-                    except Exception as e:
-                        print(f"Ошибка при закрытии Word: {e}")
-                        
-            except ImportError:
-                error_msg = "Ошибка: comtypes не установлен или не работает"
-                self.show_error_popup("Ошибка конвертации", error_msg)
-                return False
-            except Exception as e:
-                error_msg = f"Общая ошибка конвертации (попытка {attempt + 1}): {str(e)}"
-                print(error_msg)
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                continue
-        
-        # Если все попытки не удались, показываем ошибку
-        error_msg = "Не удалось конвертировать документ в PDF.\n\nВозможные причины:\n1. MS Word не установлен или не активирован\n2. Документ открыт в другом приложении\n3. Недостаточно прав для доступа к файлу"
-        self.show_error_popup("Ошибка конвертации PDF", error_msg)
-        return False
+                except:
+                    pass
+
+        except ImportError:
+            self.show_error_popup("Ошибка", 
+                                "Библиотека comtypes не работает\n\nУбедитесь, что:\n1. Установлен MS Office 2016\n2. Приложение собрано правильно")
+            return False
+        except Exception as e:
+            self.show_error_popup("Критическая ошибка", 
+                                f"Непредвиденная ошибка:\n{str(e)}")
+            return False
+
+    def show_info_popup(self, title, message):
+        """Показать информационное всплывающее окно"""
+        try:
+            popup = ctk.CTkToplevel(self)
+            popup.title(title)
+            popup.geometry("400x150")
+            popup.resizable(False, False)
+            popup.transient(self)
+            popup.grab_set()
+            
+            # Центрирование
+            popup.update_idletasks()
+            x = (popup.winfo_screenwidth() // 2) - (400 // 2)
+            y = (popup.winfo_screenheight() // 2) - (150 // 2)
+            popup.geometry(f"400x150+{x}+{y}")
+            
+            label = ctk.CTkLabel(popup, text=message, wraplength=380)
+            label.pack(pady=30, padx=10)
+            
+            # Автоматическое закрытие через 3 секунды
+            popup.after(3000, popup.destroy)
+            
+        except:
+            pass
 
     def show_error_popup(self, title, message):
         """Показать всплывающее окно с ошибкой"""
         try:
             popup = ctk.CTkToplevel(self)
             popup.title(title)
-            popup.geometry("500x300")
-            popup.resizable(False, False)
-            popup.transient(self)  # Сделать окно модальным
-            popup.grab_set()  # Захватить фокус
+            popup.geometry("600x400")
+            popup.resizable(True, True)
+            popup.transient(self)
+            popup.grab_set()
             
-            # Центрирование окна
+            # Центрирование
             popup.update_idletasks()
-            x = (popup.winfo_screenwidth() // 2) - (500 // 2)
-            y = (popup.winfo_screenheight() // 2) - (300 // 2)
-            popup.geometry(f"500x300+{x}+{y}")
+            x = (popup.winfo_screenwidth() // 2) - (600 // 2)
+            y = (popup.winfo_screenheight() // 2) - (400 // 2)
+            popup.geometry(f"600x400+{x}+{y}")
             
-            # Текст ошибки
-            error_text = ctk.CTkTextbox(popup, width=480, height=200, wrap="word")
-            error_text.pack(pady=20, padx=10, fill="both", expand=True)
+            # Текст ошибки с прокруткой
+            text_frame = ctk.CTkFrame(popup)
+            text_frame.pack(pady=20, padx=10, fill="both", expand=True)
+            
+            error_text = ctk.CTkTextbox(text_frame, wrap="word")
+            error_text.pack(pady=10, padx=10, fill="both", expand=True)
             error_text.insert("1.0", message)
-            error_text.configure(state="disabled")  # Только для чтения
+            error_text.configure(state="disabled")
             
             # Кнопка OK
-            ok_button = ctk.CTkButton(popup, text="OK", command=popup.destroy, width=100)
-            ok_button.pack(pady=10)
+            button_frame = ctk.CTkFrame(popup)
+            button_frame.pack(pady=10, padx=10, fill="x")
             
-            # Фокус на кнопке OK
+            ok_button = ctk.CTkButton(button_frame, text="OK", command=popup.destroy, width=100)
+            ok_button.pack(pady=5)
             ok_button.focus_set()
             
         except Exception as e:
-            # Если не удалось создать popup, пробуем простой вариант
+            # Резервный вариант через tkinter
             try:
                 import tkinter as tk
                 from tkinter import messagebox
                 messagebox.showerror(title, message)
             except:
                 pass
-
     #Функция замены меток в документах
     def formate_docx(self, replacements_dict, template):
         edited_doc = Document(template)
@@ -771,76 +852,28 @@ class BasePage(ctk.CTkFrame):
             # Сохраняем DOCX
             edited_doc.save(file_path)
             
-            # Пытаемся конвертировать в PDF
+            # Проверяем, что DOCX сохранился
+            if not os.path.exists(file_path):
+                self.show_error_popup("Ошибка", "Не удалось сохранить DOCX файл")
+                return
+            
+            # Показываем прогресс конвертации
+            self.show_info_popup("Конвертация", "Начало конвертации DOCX в PDF...")
+            
+            # Конвертируем в PDF
             pdf_file_path = file_path.replace('.docx', '.pdf')
             pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
             
-            # Показываем результат
-            popup = ctk.CTkToplevel(self)
-            popup.title("Результат")
-            popup.geometry("400x150")
-            popup.resizable(False, False)
-            popup.transient(self)
-            popup.grab_set()
-            
-            # Центрирование
-            popup.update_idletasks()
-            x = (popup.winfo_screenwidth() // 2) - (400 // 2)
-            y = (popup.winfo_screenheight() // 2) - (150 // 2)
-            popup.geometry(f"400x150+{x}+{y}")
-            
             if pdf_success:
-                message = "DOCX документ и PDF успешно сформированы!"
+                self.show_info_popup("Успех", 
+                                f"Оба файла успешно созданы:\n\nDOCX: {file_path}\nPDF: {pdf_file_path}")
             else:
-                message = "DOCX документ сформирован, но конвертация в PDF не удалась\n\nФайл сохранен как: " + file_path
+                self.show_info_popup("Частичный успех",
+                                f"DOCX файл создан:\n{file_path}\n\nPDF создать не удалось")
             
-            label = ctk.CTkLabel(popup, text=message, wraplength=380)
-            label.pack(pady=20, padx=10)
-            
-            ok_button = ctk.CTkButton(popup, text="OK", command=popup.destroy)
-            ok_button.pack(pady=10)
-            
-            # Для ФИЗО документа (если нужно)
-            if self.template_fizo_path and self.fizo_var.get():
-                try:
-                    fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-                    fizo_default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
-                    fizo_file_path = filedialog.asksaveasfilename(
-                        defaultextension=".docx",
-                        filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-                        initialfile=fizo_default_filename,
-                        title="Сохранить заявку ФИЗО как"
-                    )
-                    
-                    if fizo_file_path:
-                        fizo_doc.save(fizo_file_path)
-                        fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
-                        fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
-                        
-                        # Показываем результат для ФИЗО
-                        fizo_popup = ctk.CTkToplevel(self)
-                        fizo_popup.title("Результат ФИЗО")
-                        fizo_popup.geometry("400x150")
-                        fizo_popup.resizable(False, False)
-                        
-                        if fizo_pdf_success:
-                            fizo_message = "Заявка ФИЗО и PDF успешно сформированы!"
-                        else:
-                            fizo_message = "Заявка ФИЗО сформирована, но конвертация в PDF не удалась"
-                        
-                        fizo_label = ctk.CTkLabel(fizo_popup, text=fizo_message, wraplength=380)
-                        fizo_label.pack(pady=20, padx=10)
-                        
-                        fizo_ok_button = ctk.CTkButton(fizo_popup, text="OK", command=fizo_popup.destroy)
-                        fizo_ok_button.pack(pady=10)
-                        
-                except Exception as e:
-                    self.show_error_popup("Ошибка ФИЗО", f"Ошибка при формировании заявки ФИЗО: {str(e)}")
-                
         except Exception as e:
             self.show_error_popup("Ошибка", f"Ошибка при формировании документа: {str(e)}")
-
-
+    
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
