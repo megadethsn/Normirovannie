@@ -508,8 +508,8 @@ class BasePage(ctk.CTkFrame):
                 start, end = [int(num) for num in item.split('-')]
                 for i in range(start, end + 1):
                     result.append(start_uin + str(i))
-            elif 'п' in item:
-                result.append(f'12{cur_year}20020' + item)
+            elif 'п' or 'g' in item:
+                result.append(f'12{cur_year}20020' + item[1:])
             else:
                 result.append(start_uin + item)
         return result
