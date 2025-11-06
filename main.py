@@ -288,75 +288,83 @@ class BasePage(ctk.CTkFrame):
         self.setup_navigation()
 
     def setup_navigation(self):
-        """Настройка навигации по полям ввода"""
-        widgets = [
+        """Упрощенная настройка навигации по полям ввода"""
+        # Только основные поля ввода для навигации
+        self.entry_widgets = [
             self.num_entry, self.issue_date_entry, self.work_date_entry,
             self.entry_start_time, self.entry_end_time,
-            self.cb_pfo, self.cb_fizo, self.cb_zun,
             self.entry_pfo, self.entry_fizo, self.entry_zun,
-            self.fizo_number_entry,
-            self.workers_dropdown.toggle_btn,
-            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
-            self.cb_marusya, self.cb_vantuz, self.cb_creator,
-            self.btn_save
+            self.fizo_number_entry
         ]
         
-        for widget in widgets:
-            if hasattr(widget, 'bind'):
-                widget.bind('<Up>', lambda e: self.navigate(e, -1))
-                widget.bind('<Down>', lambda e: self.navigate(e, 1))
-                widget.bind('<Control-c>', self.copy_text)
-                widget.bind('<Control-x>', self.cut_text)
-                widget.bind('<Control-v>', self.paste_text)
+        # Настройка для полей ввода
+        for entry in self.entry_widgets:
+            entry.bind('<Up>', self.focus_previous)
+            entry.bind('<Down>', self.focus_next)
+            entry.bind('<Control-c>', self.copy_text)
+            entry.bind('<Control-x>', self.cut_text)
+            entry.bind('<Control-v>', self.paste_text)
 
-    def navigate(self, event, direction):
-        """Навигация по полям ввода с помощью стрелок"""
-        widgets = [
-            self.num_entry, self.issue_date_entry, self.work_date_entry,
-            self.entry_start_time, self.entry_end_time,
-            self.entry_pfo, self.entry_fizo, self.entry_zun,
-            self.fizo_number_entry,
-            self.workers_dropdown.toggle_btn,
-            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
-            self.cb_marusya, self.cb_vantuz, self.cb_creator,
-            self.btn_save
-        ]
-        
+    def focus_previous(self, event):
+        """Переход к предыдущему полю"""
         current = event.widget
-        try:
-            index = widgets.index(current)
-            new_index = (index + direction) % len(widgets)
-            widgets[new_index].focus_set()
-        except ValueError:
-            pass
-        
+        if current in self.entry_widgets:
+            index = self.entry_widgets.index(current)
+            prev_index = (index - 1) % len(self.entry_widgets)
+            self.entry_widgets[prev_index].focus_set()
+        return "break"
+
+    def focus_next(self, event):
+        """Переход к следующему полю"""
+        current = event.widget
+        if current in self.entry_widgets:
+            index = self.entry_widgets.index(current)
+            next_index = (index + 1) % len(self.entry_widgets)
+            self.entry_widgets[next_index].focus_set()
         return "break"
 
     def copy_text(self, event):
-        """Копирование текста"""
-        if hasattr(event.widget, 'get'):
-            selected_text = event.widget.selection_get()
-            self.clipboard_clear()
-            self.clipboard_append(selected_text)
+        """Копирование текста - упрощенная версия"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'selection_get'):
+                selected_text = widget.selection_get()
+                self.clipboard_clear()
+                self.clipboard_append(selected_text)
+        except:
+            pass
         return "break"
 
     def cut_text(self, event):
-        """Вырезание текста"""
-        if hasattr(event.widget, 'get') and hasattr(event.widget, 'delete'):
-            selected_text = event.widget.selection_get()
-            self.clipboard_clear()
-            self.clipboard_append(selected_text)
-            event.widget.delete("sel.first", "sel.last")
+        """Вырезание текста - упрощенная версия"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'selection_get') and hasattr(widget, 'delete'):
+                selected_text = widget.selection_get()
+                self.clipboard_clear()
+                self.clipboard_append(selected_text)
+                widget.delete("sel.first", "sel.last")
+        except:
+            pass
         return "break"
 
     def paste_text(self, event):
-        """Вставка текста"""
-        if hasattr(event.widget, 'insert'):
-            try:
+        """Вставка текста - упрощенная версия"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'insert'):
+                # Удаляем выделенный текст если есть
+                try:
+                    if widget.selection_present():
+                        widget.delete("sel.first", "sel.last")
+                except:
+                    pass
+                
+                # Вставляем из буфера обмена
                 text = self.clipboard_get()
-                event.widget.insert("insert", text)
-            except:
-                pass
+                widget.insert("insert", text)
+        except:
+            pass
         return "break"
 
     def on_show(self):
@@ -559,35 +567,39 @@ class BasePage(ctk.CTkFrame):
             return '6 часов'
     
     def convert_to_pdf(self, docx_path, pdf_path):
+        """
+        Конвертация DOCX в PDF используя MS Word 2016
+        """
         try:
             import comtypes.client
-            
+
             word = comtypes.client.CreateObject('Word.Application')
-            word.Visible = False
+            word.Visible = False  
+            
+            import time
             
             try:
                 doc = word.Documents.Open(docx_path)
-                doc.SaveAs(pdf_path, FileFormat=17)
+                time.sleep(1)  
                 
+                doc.SaveAs(pdf_path, FileFormat=17)  
+                time.sleep(1)
+                        
                 doc.Close()
                 
                 return True
                 
             except Exception as e:
-                print(f"Ошибка при конвертации: {e}")
+
                 return False
                 
             finally:
-                # Закрываем Word
-                word.Quit()
-                
-        except ImportError:
-            try:
-                from docx2pdf import convert
-                convert(docx_path, pdf_path)
-                return True
-            except Exception:
-                return False
+                try:
+                    word.Quit()
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"Ошибка при закрытии Word: {e}")
+                    
         except Exception as e:
             print(f"Общая ошибка конвертации: {e}")
             return False
@@ -691,34 +703,24 @@ class BasePage(ctk.CTkFrame):
             if not file_path:
                 return
             
+            # Сохраняем DOCX
             edited_doc.save(file_path)
+            
+            # Пытаемся конвертировать в PDF
             pdf_file_path = file_path.replace('.docx', '.pdf')
-            self.convert_to_pdf(file_path, pdf_file_path)
+            pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
             
-
-            if self.template_fizo_path and self.fizo_var.get():
-                fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-                default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
-                file_path = filedialog.asksaveasfilename(
-                    defaultextension=".docx",
-                    filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-                    initialfile=default_filename,
-                    title="Сохранить документ как"
-                )
-
-                if not file_path:
-                    return
-                
-                fizo_doc.save(file_path)
-                pdf_file_path = file_path.replace('.docx', '.pdf')
-                self.convert_to_pdf(file_path, pdf_file_path)
-            
+            # Показываем соответствующий результат
             popup = ctk.CTkToplevel(self.info_frame)
             popup.title("Уведомление")
-            popup.geometry("300x100")
+            popup.geometry("400x120")
             popup.resizable(False, False)
             
-            ctk.CTkLabel(popup, text="Документ сформирован!").pack(pady=20)
+            if pdf_success:
+                ctk.CTkLabel(popup, text="Документ и PDF успешно сформированы!").pack(pady=20)
+            else:
+                ctk.CTkLabel(popup, text="DOCX документ сформирован, но конвертация в PDF не удалась").pack(pady=20)
+            
             ctk.CTkButton(popup, text="OK", command=popup.destroy).pack(pady=5)
             
         except Exception as e:
