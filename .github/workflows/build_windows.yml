@@ -21,12 +21,7 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter python-docx comtypes
-        
-    - name: Prepare templates
-      run: |
-        mkdir dist\templates
-        copy templates\* dist\templates\
+        pip install pyinstaller customtkinter python-docx comtypes==1.1.14
         
     - name: Build application
       run: |
@@ -34,12 +29,26 @@ jobs:
         
     - name: Verify build
       run: |
+        echo "Содержимое dist:"
         dir dist\
-        echo "Проверка наличия шаблонов:"
+        echo "Содержимое dist/templates:"
         dir dist\templates\
+        
+    - name: Create distribution package
+      run: |
+        # Создаем папку для финального пакета
+        mkdir NormZadanie_Package
+        # Копируем exe файл
+        copy dist\NormZadanie.exe NormZadanie_Package\
+        # Копируем папку templates
+        xcopy templates NormZadanie_Package\templates /E /I
+        echo "Содержимое пакета:"
+        dir NormZadanie_Package /S
         
     - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: NormZadanie-Windows
-        path: dist/NormZadanie.exe
+        name: Генератор нормированных заданий
+        path: |
+          NormZadanie_Package/NormZadanie.exe
+          NormZadanie_Package/templates/
