@@ -508,6 +508,8 @@ class BasePage(ctk.CTkFrame):
                 start, end = [int(num) for num in item.split('-')]
                 for i in range(start, end + 1):
                     result.append(start_uin + str(i))
+            elif 'п' in item:
+                result.append(f'12{cur_year}20020' + item)
             else:
                 result.append(start_uin + item)
         return result
@@ -723,13 +725,13 @@ class BasePage(ctk.CTkFrame):
             edited_doc.save(file_path)
             
             pdf_file_path = file_path.replace('.docx', '.pdf')
-            pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
+            self.convert_to_pdf(file_path, pdf_file_path)
             
             
-            if self.template_fizo_path and self.fizo_var.get():
+            if self.fizo_var.get() and self.template_fizo_path and os.path.exists(self.template_fizo_path):
                 try:
                     fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-                    fizo_default_filename = f'Заявка на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
+                    fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
                     fizo_file_path = filedialog.asksaveasfilename(
                         defaultextension=".docx",
                         filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
@@ -739,15 +741,20 @@ class BasePage(ctk.CTkFrame):
                     
                     if fizo_file_path:
                         fizo_doc.save(fizo_file_path)
-                        fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_file_path.replace('.docx', '.pdf'))
                         
+                        # Конвертируем ФИЗО в PDF
+                        fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
+                        self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
                         
+                    else:
+                        return
                         
-                except:
-                    return False
+                except Exception as e:
+                    print(f"Ошибка ФИЗО: {e}")  # Для отладки
+            
+        except Exception as e:          
+            print(f"Общая ошибка: {e}")  # Для отладки
                         
-        except:
-            pass
                 
         
         
