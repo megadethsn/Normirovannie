@@ -14,28 +14,33 @@ jobs:
     - uses: actions/checkout@v4
     
     - name: Set up Python
-      uses: actions/setup-python@v4
+      uses: actions/setup-python@v4 
       with:
         python-version: '3.8'
     
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter python-docx comtypes==1.1.14
+        pip install pyinstaller customtkinter python-docx comtypes
+        
+    - name: Prepare templates
+      run: |
+        mkdir dist\templates
+        copy templates\* dist\templates\
         
     - name: Build application
       run: |
-        pyinstaller --onefile --windowed --name NormZadanie --add-data "templates/*;templates" main.py
+        pyinstaller --onefile --windowed --name GeneratorNormirovannoe --add-data "templates/*;templates" main.py
         
     - name: Verify build
       run: |
-        echo "Проверка собранного приложения:"
-        dir "dist"
-        echo "Проверка папки templates:"
-        dir "dist\templates"
+        dir dist\
+        dir dist\templates\
         
-    - name: Upload complete dist folder
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: NormZadanie-Complete
-        path: dist/
+        name: GeneratorNormirovannoe
+        path: |
+          dist/GeneratorNormirovannoe.exe
+          dist/templates/
