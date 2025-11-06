@@ -30,10 +30,12 @@ jobs:
     - name: Verify build
       run: |
         echo "Проверка собранного приложения:"
-        dir dist /S
+        dir "dist"
+        echo "Проверка папки templates:"
+        dir "dist\templates"
         
     - name: Upload complete dist folder
       uses: actions/upload-artifact@v4
       with:
-        name: NormZadanie
+        name: NormZadanie-Complete
         path: dist/
