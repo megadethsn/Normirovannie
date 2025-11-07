@@ -771,35 +771,35 @@ class BasePage(ctk.CTkFrame):
                     self.show_simple_popup("Ошибка", f"Шаблон ФИЗО не найден")
                     return
                 
-                try:
-                    fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-                    fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
-                    fizo_file_path = filedialog.asksaveasfilename(
-                        defaultextension=".docx",
-                        filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-                        initialfile=fizo_default_filename,
-                        title="Сохранить заявку ФИЗО как"
-                    )
-                    
-                    if fizo_file_path:
-                        fizo_doc.save(fizo_file_path)
+                if self.fizo_var.get() and self.template_fizo_path and os.path.exists(self.template_fizo_path):
+                    try:
+                        fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
+                        fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
+                        fizo_file_path = filedialog.asksaveasfilename(
+                            defaultextension=".docx",
+                            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
+                            initialfile=fizo_default_filename,
+                            title="Сохранить заявку ФИЗО как"
+                        )
                         
-                        # Конвертируем ФИЗО в PDF
-                        fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
-                        fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
-                        
-                        if fizo_pdf_success:
-                            self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО и PDF сформированы")
+                        # ВАЖНО: проверяем что пользователь не отменил диалог
+                        if fizo_file_path and fizo_file_path != '':
+                            fizo_doc.save(fizo_file_path)
+                            print(f"Документ ФИЗО сохранен: {fizo_file_path}")
+                            
+                            # Конвертируем ФИЗО в PDF
+                            fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
+                            self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
                         else:
-                            self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО сформирована")
-                        
-                except Exception as e:
-                    self.show_simple_popup("Ошибка", f"Ошибка при формировании заявки ФИЗО, {e}")
-                    print(f"Ошибка ФИЗО: {e}")
+                            print("Пользователь отменил сохранение ФИЗО")
+                            
+                                
+                    except Exception as e:
+                        self.show_simple_popup("Ошибка", f"Ошибка при формировании заявки ФИЗО, {e, fizo_file_path, fizo_pdf_path}")
                 
         except Exception as e:
             self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
-            print(f"Общая ошибка: {e}")
+
         
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
