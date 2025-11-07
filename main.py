@@ -288,27 +288,35 @@ class BasePage(ctk.CTkFrame):
         self.setup_navigation()
 
     def setup_navigation(self):
-        """Правильная настройка навигации по полям ввода"""
-        # Все поля ввода включая чекбоксы
-        self.all_widgets = [
+        """Настройка навигации по полям ввода"""
+        # Разделяем виджеты по типам
+        self.entry_widgets = [
             self.num_entry, self.issue_date_entry, self.work_date_entry,
             self.entry_start_time, self.entry_end_time,
             self.entry_pfo, self.entry_fizo, self.entry_zun,
-            self.fizo_number_entry,
-            self.cb_pfo, self.cb_fizo, self.cb_zun,
-            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
-            self.cb_marusya, self.cb_vantuz, self.cb_creator,
-            self.btn_save
+            self.fizo_number_entry
         ]
         
-        # Привязываем события ко всем виджетам
+        self.checkbox_widgets = [
+            self.cb_pfo, self.cb_fizo, self.cb_zun,
+            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
+            self.cb_marusya, self.cb_vantuz, self.cb_creator
+        ]
+        
+        self.button_widgets = [self.btn_save]
+        
+        self.all_widgets = self.entry_widgets + self.checkbox_widgets + self.button_widgets
+        
+        # Привязываем события навигации ко всем виджетам
         for widget in self.all_widgets:
             widget.bind('<Up>', lambda e: self.navigate(e, -1))
             widget.bind('<Down>', lambda e: self.navigate(e, 1))
-            if hasattr(widget, 'get'):  # Только для полей ввода
-                widget.bind('<Control-c>', self.copy_text)
-                widget.bind('<Control-x>', self.cut_text)
-                widget.bind('<Control-v>', self.paste_text)
+        
+        # Привязываем операции с буфером обмена только к полям ввода
+        for entry in self.entry_widgets:
+            entry.bind('<Control-c>', self.copy_text)
+            entry.bind('<Control-x>', self.cut_text)
+            entry.bind('<Control-v>', self.paste_text)
 
     def navigate(self, event, direction):
         """Навигация по виджетам"""
@@ -318,51 +326,9 @@ class BasePage(ctk.CTkFrame):
                 index = self.all_widgets.index(current)
                 new_index = (index + direction) % len(self.all_widgets)
                 self.all_widgets[new_index].focus_set()
+                print(f"🔀 Навигация: {current} -> {self.all_widgets[new_index]}")
         except Exception as e:
-            print(f"Ошибка навигации: {e}")
-        return "break"
-
-    def copy_text(self, event):
-        """Копирование текста"""
-        try:
-            widget = event.widget
-            if widget.selection_present():
-                selected_text = widget.selection_get()
-                self.clipboard_clear()
-                self.clipboard_append(selected_text)
-        except:
-            pass
-        return "break"
-
-    def cut_text(self, event):
-        """Вырезание текста"""
-        try:
-            widget = event.widget
-            if widget.selection_present():
-                selected_text = widget.selection_get()
-                self.clipboard_clear()
-                self.clipboard_append(selected_text)
-                widget.delete("sel.first", "sel.last")
-        except:
-            pass
-        return "break"
-
-    def paste_text(self, event):
-        """Вставка текста"""
-        try:
-            widget = event.widget
-            # Удаляем выделенный текст если есть
-            try:
-                if widget.selection_present():
-                    widget.delete("sel.first", "sel.last")
-            except:
-                pass
-            
-            # Вставляем из буфера обмена
-            text = self.clipboard_get()
-            widget.insert("insert", text)
-        except:
-            pass
+            self.show_simple_popup('Ошибка', e)
         return "break"
     def on_show(self):
         """Сброс полей при показе страницы"""
@@ -765,41 +731,72 @@ class BasePage(ctk.CTkFrame):
                 self.show_simple_popup("Успешно", "Документ сформирован")
             
             # Теперь создаем документ ФИЗО (если выбран чекбокс ФИЗО и есть шаблон)
-            if self.fizo_var.get() and self.template_fizo_path:
-                # Проверяем существование шаблона ФИЗО
-                if not os.path.exists(self.template_fizo_path):
-                    self.show_simple_popup("Ошибка", f"Шаблон ФИЗО не найден")
-                    return
+            if self.fizo_var.get():
+                print("🔔 Создание документа ФИЗО...")
+                self.create_fizo_document()
+            else:
+                print("ℹ️ ФИЗО не выбран, пропускаем создание")
                 
-                if self.fizo_var.get() and self.template_fizo_path and os.path.exists(self.template_fizo_path):
-                    try:
-                        fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
-                        fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
-                        fizo_file_path = filedialog.asksaveasfilename(
-                            defaultextension=".docx",
-                            filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
-                            initialfile=fizo_default_filename,
-                            title="Сохранить заявку ФИЗО как"
-                        )
-                        
-                        # ВАЖНО: проверяем что пользователь не отменил диалог
-                        if fizo_file_path and fizo_file_path != '':
-                            fizo_doc.save(fizo_file_path)
-                            print(f"Документ ФИЗО сохранен: {fizo_file_path}")
-                            
-                            # Конвертируем ФИЗО в PDF
-                            fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
-                            self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
-                        else:
-                            print("Пользователь отменил сохранение ФИЗО")
-                            
-                                
-                    except Exception as e:
-                        self.show_simple_popup("Ошибка", f"Ошибка при формировании заявки ФИЗО, {e, fizo_file_path, fizo_pdf_path}")
+            # Финальное уведомление
+            self.show_simple_popup("Готово", "Документы сформированы")
                 
         except Exception as e:
+            error_msg = f"❌ Ошибка при формировании документа: {str(e)}"
+            print(error_msg)
             self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
 
+    def create_fizo_document(self):
+        """Создание документа ФИЗО"""
+        try:
+            print("🔄 Проверка условий для ФИЗО...")
+            print(f"   template_fizo_path: {self.template_fizo_path}")
+            print(f"   fizo_var.get(): {self.fizo_var.get()}")
+            
+            if not self.template_fizo_path:
+                print("❌ Путь к шаблону ФИЗО не указан")
+                return
+                
+            if not os.path.exists(self.template_fizo_path):
+                error_msg = f"❌ Шаблон ФИЗО не найден: {self.template_fizo_path}"
+                print(error_msg)
+                self.show_simple_popup("Ошибка", "Шаблон ФИЗО не найден")
+                return
+            
+            print(f"✅ Шаблон ФИЗО найден: {self.template_fizo_path}")
+            
+            # Создаем документ ФИЗО
+            fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
+            fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
+            
+            print("💾 Запрос сохранения ФИЗО документа...")
+            fizo_file_path = filedialog.asksaveasfilename(
+                defaultextension=".docx",
+                filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
+                initialfile=fizo_default_filename,
+                title="Сохранить заявку ФИЗО как"
+            )
+            
+            if not fizo_file_path:
+                print("❌ Пользователь отменил сохранение ФИЗО")
+                return
+            
+            # Сохраняем ФИЗО DOCX
+            fizo_doc.save(fizo_file_path)
+            print(f"✅ Документ ФИЗО сохранен: {fizo_file_path}")
+            
+            # Конвертируем ФИЗО в PDF
+            fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
+            fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
+            
+            if fizo_pdf_success:
+                print("✅ ФИЗО PDF создан успешно")
+            else:
+                print("⚠️ ФИЗО PDF не создан, но DOCX сохранен")
+                
+        except Exception as e:
+            error_msg = f"❌ Ошибка при создании ФИЗО: {str(e)}"
+            print(error_msg)
+            self.show_simple_popup("Ошибка ФИЗО", "Ошибка при создании заявки ФИЗО")
         
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
