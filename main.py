@@ -797,7 +797,7 @@ class BasePage(ctk.CTkFrame):
                             self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО сформирована")
                         
                 except Exception as e:
-                    self.show_simple_popup("Ошибка", "Ошибка при формировании заявки ФИЗО")
+                    self.show_simple_popup("Ошибка", "Ошибка при формировании заявки ФИЗО", e)
                     print(f"Ошибка ФИЗО: {e}")
                 
         except Exception as e:
