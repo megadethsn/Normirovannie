@@ -502,16 +502,18 @@ class BasePage(ctk.CTkFrame):
         cur_year = datetime.now().year - 2000
         start_uin = f'11{cur_year}20020'
         string = string.split(', ')
+        print(string)
         result = []
         for item in string:
             if '-' in item:
                 start, end = [int(num) for num in item.split('-')]
                 for i in range(start, end + 1):
                     result.append(start_uin + str(i))
-            elif 'п' or 'g' in item:
+            if 'п' in item or 'g' in item:
                 result.append(f'12{cur_year}20020' + item[1:])
             else:
                 result.append(start_uin + item)
+        print(result)
         return result
     
     #Чекбоксы подписанты
@@ -678,7 +680,31 @@ class BasePage(ctk.CTkFrame):
             
         
 
-    #Функция для сохранения результата и формирования документа
+    def show_simple_popup(self, title, message):
+        """Простое всплывающее окно с авто-закрытием через 2 секунды"""
+        try:
+            popup = ctk.CTkToplevel(self)
+            popup.title(title)
+            popup.geometry("400x120")
+            popup.resizable(False, False)
+            popup.transient(self)
+            popup.grab_set()
+            
+            # Центрирование
+            popup.update_idletasks()
+            x = (popup.winfo_screenwidth() // 2) - (400 // 2)
+            y = (popup.winfo_screenheight() // 2) - (120 // 2)
+            popup.geometry(f"400x120+{x}+{y}")
+            
+            label = ctk.CTkLabel(popup, text=message, wraplength=380)
+            label.pack(pady=30, padx=10)
+            
+            # Автоматическое закрытие через 2 секунды
+            popup.after(2000, popup.destroy)
+            
+        except Exception as e:
+            print(f"Ошибка создания popup: {e}")
+
     def save_data_and_form_doc(self):
         time = f'с {self.TIME_START.get()} час. до {self.TIME_END.get()} час.'
         total_uins, exams_str, types_str = self.get_uins()
@@ -706,10 +732,16 @@ class BasePage(ctk.CTkFrame):
             '{{ISSUER}}': issuer,
             '{{EMAIL}}': email,
             '{{EXAMS}}': self.get_exams(),
-            '{{FIZO_UIN}}':fizo_ids
+            '{{FIZO_UIN}}': fizo_ids
         }
         
         try:
+            # Проверяем существование основного шаблона
+            if not os.path.exists(self.template):
+                self.show_simple_popup("Ошибка", f"Основной шаблон не найден: {self.template}")
+                return
+            
+            # Создаем основной документ
             edited_doc = self.formate_docx(self.results, self.template)
             default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
             file_path = filedialog.asksaveasfilename(
@@ -722,13 +754,26 @@ class BasePage(ctk.CTkFrame):
             if not file_path:
                 return
             
+            # Сохраняем основной DOCX
             edited_doc.save(file_path)
             
+            # Конвертируем основной в PDF
             pdf_file_path = file_path.replace('.docx', '.pdf')
-            self.convert_to_pdf(file_path, pdf_file_path)
+            pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
             
+            # Показываем результат для основного документа
+            if pdf_success:
+                self.show_simple_popup("Успешно", "Документ и PDF сформированы")
+            else:
+                self.show_simple_popup("Успешно", "Документ сформирован")
             
-            if self.fizo_var.get() and self.template_fizo_path and os.path.exists(self.template_fizo_path):
+            # Теперь создаем документ ФИЗО (если выбран чекбокс ФИЗО и есть шаблон)
+            if self.fizo_var.get() and self.template_fizo_path:
+                # Проверяем существование шаблона ФИЗО
+                if not os.path.exists(self.template_fizo_path):
+                    self.show_simple_popup("Ошибка", f"Шаблон ФИЗО не найден")
+                    return
+                
                 try:
                     fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
                     fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
@@ -744,19 +789,20 @@ class BasePage(ctk.CTkFrame):
                         
                         # Конвертируем ФИЗО в PDF
                         fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
-                        self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
+                        fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
                         
-                    else:
-                        return
+                        if fizo_pdf_success:
+                            self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО и PDF сформированы")
+                        else:
+                            self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО сформирована")
                         
                 except Exception as e:
-                    print(f"Ошибка ФИЗО: {e}")  # Для отладки
-            
-        except Exception as e:          
-            print(f"Общая ошибка: {e}")  # Для отладки
-                        
+                    self.show_simple_popup("Ошибка", "Ошибка при формировании заявки ФИЗО")
+                    print(f"Ошибка ФИЗО: {e}")
                 
-        
+        except Exception as e:
+            self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
+            print(f"Общая ошибка: {e}")
         
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
