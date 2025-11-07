@@ -531,7 +531,6 @@ class BasePage(ctk.CTkFrame):
         cur_year = datetime.now().year - 2000
         start_uin = f'11{cur_year}20020'
         string = string.split(', ')
-        print(string)
         result = []
         for item in string:
             if '-' in item:
@@ -542,7 +541,6 @@ class BasePage(ctk.CTkFrame):
                 result.append(f'12{cur_year}20020' + item[1:])
             else:
                 result.append(start_uin + item)
-        print(result)
         return result
     
     #Чекбоксы подписанты
@@ -735,133 +733,122 @@ class BasePage(ctk.CTkFrame):
             print(f"Ошибка создания popup: {e}")
 
     def save_data_and_form_doc(self):
-        """Сохранение документов"""
-        print("🚀 НАЧАЛО: save_data_and_form_doc")
+        time = f'с {self.TIME_START.get()} час. до {self.TIME_END.get()} час.'
+        total_uins, exams_str, types_str = self.get_uins()
+        job_title, fullname = self.get_result_chief()
+        issuer, email = self.get_result_issuer()
+        ids = ('; '.join(total_uins) + '.').strip() if len(total_uins) > 1 else total_uins[0].strip()
+        fizo_ids = '; '.join(self.formate_uins(self.fizo_value.get())) + '.' if len(self.formate_uins(self.fizo_value.get())) > 1 else self.formate_uins(self.fizo_value.get())
+        
+        # Получаем номер заявки ФИЗО, если есть
+        fizo_number = self.fizo_number_var.get() if hasattr(self, 'fizo_number_var') and self.fizo_var.get() else ''
+
+        self.results = {
+            '{{NUMBER}}': self.num_var.get(),
+            '{{NUMBER_FIZO}}': fizo_number,
+            '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get().lower(),
+            '{{DATE_TO_WORK}}': self.WORK_DATE.get().lower(),
+            '{{TYPE_OF_EXAMS}}': types_str,
+            '{{IDENTIFICATORS}}': ids,
+            '{{EXAMS_P2}}': exams_str,
+            '{{TIME}}': time,
+            '{{EST_TIME}}': self.est_time(),
+            '{{PEOPLE}}': self.workers_dropdown.get_selected(),
+            '{{JOB_TITLE}}': job_title,
+            '{{FULLNAME}}': fullname,
+            '{{ISSUER}}': issuer,
+            '{{EMAIL}}': email,
+            '{{EXAMS}}': self.get_exams(),
+            '{{FIZO_UIN}}':fizo_ids
+        }
         
         try:
-            # Подготовка данных
-            print("📊 Подготовка данных...")
-            time = f'с {self.TIME_START.get()} час. до {self.TIME_END.get()} час.'
-            total_uins, exams_str, types_str = self.get_uins()
-            job_title, fullname = self.get_result_chief()
-            issuer, email = self.get_result_issuer()
-            ids = ('; '.join(total_uins) + '.').strip() if len(total_uins) > 1 else total_uins[0].strip()
-            fizo_ids = '; '.join(self.formate_uins(self.fizo_value.get())) + '.' if len(self.formate_uins(self.fizo_value.get())) > 1 else self.formate_uins(self.fizo_value.get())
-            
-            fizo_number = self.fizo_number_var.get() if hasattr(self, 'fizo_number_var') and self.fizo_var.get() else ''
-
-            self.results = {
-                '{{NUMBER}}': self.num_var.get(),
-                '{{NUMBER_FIZO}}': fizo_number,
-                '{{DATE_OF_ISSUE}}': self.ISSUE_DATE.get().lower(),
-                '{{DATE_TO_WORK}}': self.WORK_DATE.get().lower(),
-                '{{TYPE_OF_EXAMS}}': types_str,
-                '{{IDENTIFICATORS}}': ids,
-                '{{EXAMS_P2}}': exams_str,
-                '{{TIME}}': time,
-                '{{EST_TIME}}': self.est_time(),
-                '{{PEOPLE}}': self.workers_dropdown.get_selected(),
-                '{{JOB_TITLE}}': job_title,
-                '{{FULLNAME}}': fullname,
-                '{{ISSUER}}': issuer,
-                '{{EMAIL}}': email,
-                '{{EXAMS}}': self.get_exams(),
-                '{{FIZO_UIN}}': fizo_ids
-            }
-            
-            print("✅ Данные подготовлены")
-            
-            # 1. Создаем основной документ
-            print("📄 Создание основного документа...")
-            if not self.create_main_document():
-                return
-                
-            # 2. Создаем документ ФИЗО если нужно
-            print("🔔 Проверка условий для ФИЗО...")
-            print(f"   fizo_var.get(): {self.fizo_var.get()}")
-            print(f"   template_fizo_path: {self.template_fizo_path}")
-            
-            if self.fizo_var.get() and self.template_fizo_path:
-                print("🔄 Создание документа ФИЗО...")
-                self.create_fizo_document()
-            else:
-                print("ℹ️ ФИЗО не требуется")
-                
-            # Финальное уведомление
-            print("✅ Все документы обработаны")
-            self.show_simple_popup("Готово", "Документы сформированы")
-                
-        except Exception as e:
-            error_msg = f"❌ КРИТИЧЕСКАЯ ОШИБКА: {str(e)}"
-            print(error_msg)
-            import traceback
-            traceback.print_exc()
-            self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
-
-    def create_main_document(self):
-        """Создание основного документа"""
-        try:
+            # Проверяем существование основного шаблона
             if not os.path.exists(self.template):
-                print(f"❌ Основной шаблон не найден: {self.template}")
-                self.show_simple_popup("Ошибка", "Основной шаблон не найден")
-                return False
-
-            print(f"✅ Основной шаблон найден: {self.template}")
+                self.show_simple_popup("Ошибка", f"Основной шаблон не найден: {self.template}")
+                return
             
+            # Создаем основной документ
             edited_doc = self.formate_docx(self.results, self.template)
             default_filename = f'Нормированное задание на {self.work_date(self.east).strftime("%d.%m")} {self.name}'
-            
-            print("💾 Открываем диалог сохранения основного документа...")
             file_path = filedialog.asksaveasfilename(
                 defaultextension=".docx",
                 filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
                 initialfile=default_filename,
-                title="Сохранить основной документ как"
+                title="Сохранить документ как"
             )
             
-            print(f"   Результат диалога: {file_path}")
-            
             if not file_path:
-                print("❌ Пользователь отменил сохранение основного документа")
-                return False
+                return
             
             # Сохраняем основной DOCX
             edited_doc.save(file_path)
-            print(f"✅ Основной документ сохранен: {file_path}")
             
             # Конвертируем основной в PDF
             pdf_file_path = file_path.replace('.docx', '.pdf')
             pdf_success = self.convert_to_pdf(file_path, pdf_file_path)
-            print(f"📊 Конвертация основного документа: {'✅ Успешно' if pdf_success else '❌ Не удалась'}")
             
-            return True
+            # Показываем результат для основного документа
+            if pdf_success:
+                self.show_simple_popup("Успешно", "Документ и PDF сформированы")
+            else:
+                self.show_simple_popup("Успешно", "Документ сформирован")
             
+            # Теперь создаем документ ФИЗО (если выбран чекбокс ФИЗО и есть шаблон)
+            if self.fizo_var.get():
+                print("🔔 Создание документа ФИЗО...")
+                self.create_fizo_document()
+            else:
+                print("ℹ️ ФИЗО не выбран, пропускаем создание")
+                
+            # Финальное уведомление
+            self.show_simple_popup("Готово", "Документы сформированы")
+                
         except Exception as e:
-            print(f"❌ Ошибка создания основного документа: {e}")
-            return False
+            error_msg = f"❌ Ошибка при формировании документа: {e.args}"
+            print(error_msg)
+            self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
 
     def create_fizo_document(self):
-        """Создание документа ФИЗО"""
-        print("🔄 ЗАПУСК create_fizo_document")
-        
+        """Создание документа ФИЗО с проверкой данных"""
         try:
-            # Проверяем шаблон ФИЗО
+            print("🔄 Проверка условий для ФИЗО...")
+            print(f"   template_fizo_path: {self.template_fizo_path}")
+            print(f"   fizo_var.get(): {self.fizo_var.get()}")
+            
             if not self.template_fizo_path:
                 print("❌ Путь к шаблону ФИЗО не указан")
                 return
                 
             if not os.path.exists(self.template_fizo_path):
-                print(f"❌ Шаблон ФИЗО не найден: {self.template_fizo_path}")
+                error_msg = f"❌ Шаблон ФИЗО не найден: {self.template_fizo_path}"
+                print(error_msg)
                 self.show_simple_popup("Ошибка", "Шаблон ФИЗО не найден")
                 return
             
             print(f"✅ Шаблон ФИЗО найден: {self.template_fizo_path}")
             
-            # Создаем документ ФИЗО
-            fizo_doc = self.formate_docx(self.results, self.template_fizo_path)
+            # ПРОВЕРЯЕМ И ЧИСТИМ ДАННЫЕ
+            print("🔍 Проверка данных для ФИЗО...")
+            clean_results = {}
+            for key, value in self.results.items():
+                if isinstance(value, list):
+                    # Если значение - список, преобразуем в строку
+                    clean_value = ', '.join(str(item) for item in value)
+                    print(f"   ⚠️  Исправлен {key}: список -> строка")
+                elif value is None:
+                    clean_value = ''
+                    print(f"   ⚠️  Исправлен {key}: None -> пустая строка")
+                else:
+                    clean_value = str(value)
+                clean_results[key] = clean_value
+                print(f"   {key}: {type(value)} -> {type(clean_value)}")
+            
+            # Создаем документ ФИЗО с очищенными данными
+            fizo_doc = self.formate_docx(clean_results, self.template_fizo_path)
             fizo_default_filename = f'Заявка ФИЗО на {self.work_date(east=self.east).strftime("%d.%m")} {self.name}'
             
-            print("💾 Открываем диалог сохранения ФИЗО документа...")
+            print("💾 Запрос сохранения ФИЗО документа...")
             fizo_file_path = filedialog.asksaveasfilename(
                 defaultextension=".docx",
                 filetypes=[("Word Documents", "*.docx"), ("All Files", "*.*")],
@@ -869,7 +856,7 @@ class BasePage(ctk.CTkFrame):
                 title="Сохранить заявку ФИЗО как"
             )
             
-            print(f"   Результат диалога ФИЗО: {fizo_file_path}")
+            print(f"📁 Полученный путь: {fizo_file_path}")
             
             if not fizo_file_path:
                 print("❌ Пользователь отменил сохранение ФИЗО")
@@ -880,17 +867,26 @@ class BasePage(ctk.CTkFrame):
             print(f"✅ Документ ФИЗО сохранен: {fizo_file_path}")
             
             # Конвертируем ФИЗО в PDF
-            fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
-            fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
-            print(f"📊 Конвертация ФИЗО: {'✅ Успешно' if fizo_pdf_success else '❌ Не удалась'}")
-            
-            print("✅ Документ ФИЗО успешно создан")
+            try:
+                fizo_pdf_path = fizo_file_path.replace('.docx', '.pdf')
+                print(f"🔄 Конвертация: {fizo_file_path} -> {fizo_pdf_path}")
+                fizo_pdf_success = self.convert_to_pdf(fizo_file_path, fizo_pdf_path)
                 
+                if fizo_pdf_success:
+                    print("✅ ФИЗО PDF создан успешно")
+                else:
+                    print("⚠️ ФИЗО PDF не создан, но DOCX сохранен")
+            except Exception as pdf_error:
+                print(f"⚠️ Ошибка конвертации в PDF: {pdf_error}")
+                print("📄 DOCX файл сохранен, PDF не создан")
+                    
         except Exception as e:
             error_msg = f"❌ Ошибка при создании ФИЗО: {str(e)}"
             print(error_msg)
             import traceback
             traceback.print_exc()
+            self.show_simple_popup("Ошибка ФИЗО", "Ошибка при создании заявки ФИЗО")
+        
 class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
