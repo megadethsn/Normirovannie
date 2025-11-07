@@ -801,7 +801,7 @@ class BasePage(ctk.CTkFrame):
                     print(f"Ошибка ФИЗО: {e}")
                 
         except Exception as e:
-            self.show_simple_popup("Ошибка", "Ошибка при формировании документа")
+            self.show_simple_popup("Ошибка", "Ошибка при формировании документа", e)
             print(f"Общая ошибка: {e}")
         
 class MainPage(ctk.CTkFrame):
