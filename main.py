@@ -330,6 +330,54 @@ class BasePage(ctk.CTkFrame):
         except Exception as e:
             self.show_simple_popup('Ошибка', e)
         return "break"
+    
+    def copy_text(self, event):
+        """Копирование текста"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'selection_get') and widget.selection_present():
+                selected_text = widget.selection_get()
+                self.clipboard_clear()
+                self.clipboard_append(selected_text)
+                print("📋 Текст скопирован")
+        except Exception as e:
+            print(f"❌ Ошибка копирования: {e}")
+        return "break"
+
+    def cut_text(self, event):
+        """Вырезание текста"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'selection_get') and hasattr(widget, 'delete') and widget.selection_present():
+                selected_text = widget.selection_get()
+                self.clipboard_clear()
+                self.clipboard_append(selected_text)
+                widget.delete("sel.first", "sel.last")
+                print("✂️ Текст вырезан")
+        except Exception as e:
+            print(f"❌ Ошибка вырезания: {e}")
+        return "break"
+
+    def paste_text(self, event):
+        """Вставка текста"""
+        try:
+            widget = event.widget
+            if hasattr(widget, 'insert'):
+                # Удаляем выделенный текст если есть
+                try:
+                    if widget.selection_present():
+                        widget.delete("sel.first", "sel.last")
+                except:
+                    pass
+                
+                # Вставляем из буфера обмена
+                text = self.clipboard_get()
+                widget.insert("insert", text)
+                print("📎 Текст вставлен")
+        except Exception as e:
+            print(f"❌ Ошибка вставки: {e}")
+        return "break"
+
     def on_show(self):
         """Сброс полей при показе страницы"""
         self.reset_fields()
