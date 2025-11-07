@@ -288,46 +288,45 @@ class BasePage(ctk.CTkFrame):
         self.setup_navigation()
 
     def setup_navigation(self):
-        """Упрощенная настройка навигации по полям ввода"""
-        # Только основные поля ввода для навигации
-        self.entry_widgets = [
+        """Правильная настройка навигации по полям ввода"""
+        # Все поля ввода включая чекбоксы
+        self.all_widgets = [
             self.num_entry, self.issue_date_entry, self.work_date_entry,
             self.entry_start_time, self.entry_end_time,
             self.entry_pfo, self.entry_fizo, self.entry_zun,
-            self.fizo_number_entry
+            self.fizo_number_entry,
+            self.cb_pfo, self.cb_fizo, self.cb_zun,
+            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
+            self.cb_marusya, self.cb_vantuz, self.cb_creator,
+            self.btn_save
         ]
         
-        # Настройка для полей ввода
-        for entry in self.entry_widgets:
-            entry.bind('<Up>', self.focus_previous)
-            entry.bind('<Down>', self.focus_next)
-            entry.bind('<Control-c>', self.copy_text)
-            entry.bind('<Control-x>', self.cut_text)
-            entry.bind('<Control-v>', self.paste_text)
+        # Привязываем события ко всем виджетам
+        for widget in self.all_widgets:
+            widget.bind('<Up>', lambda e: self.navigate(e, -1))
+            widget.bind('<Down>', lambda e: self.navigate(e, 1))
+            if hasattr(widget, 'get'):  # Только для полей ввода
+                widget.bind('<Control-c>', self.copy_text)
+                widget.bind('<Control-x>', self.cut_text)
+                widget.bind('<Control-v>', self.paste_text)
 
-    def focus_previous(self, event):
-        """Переход к предыдущему полю"""
-        current = event.widget
-        if current in self.entry_widgets:
-            index = self.entry_widgets.index(current)
-            prev_index = (index - 1) % len(self.entry_widgets)
-            self.entry_widgets[prev_index].focus_set()
-        return "break"
-
-    def focus_next(self, event):
-        """Переход к следующему полю"""
-        current = event.widget
-        if current in self.entry_widgets:
-            index = self.entry_widgets.index(current)
-            next_index = (index + 1) % len(self.entry_widgets)
-            self.entry_widgets[next_index].focus_set()
+    def navigate(self, event, direction):
+        """Навигация по виджетам"""
+        try:
+            current = event.widget
+            if current in self.all_widgets:
+                index = self.all_widgets.index(current)
+                new_index = (index + direction) % len(self.all_widgets)
+                self.all_widgets[new_index].focus_set()
+        except Exception as e:
+            print(f"Ошибка навигации: {e}")
         return "break"
 
     def copy_text(self, event):
-        """Копирование текста - упрощенная версия"""
+        """Копирование текста"""
         try:
             widget = event.widget
-            if hasattr(widget, 'selection_get'):
+            if widget.selection_present():
                 selected_text = widget.selection_get()
                 self.clipboard_clear()
                 self.clipboard_append(selected_text)
@@ -336,10 +335,10 @@ class BasePage(ctk.CTkFrame):
         return "break"
 
     def cut_text(self, event):
-        """Вырезание текста - упрощенная версия"""
+        """Вырезание текста"""
         try:
             widget = event.widget
-            if hasattr(widget, 'selection_get') and hasattr(widget, 'delete'):
+            if widget.selection_present():
                 selected_text = widget.selection_get()
                 self.clipboard_clear()
                 self.clipboard_append(selected_text)
@@ -349,24 +348,22 @@ class BasePage(ctk.CTkFrame):
         return "break"
 
     def paste_text(self, event):
-        """Вставка текста - упрощенная версия"""
+        """Вставка текста"""
         try:
             widget = event.widget
-            if hasattr(widget, 'insert'):
-                # Удаляем выделенный текст если есть
-                try:
-                    if widget.selection_present():
-                        widget.delete("sel.first", "sel.last")
-                except:
-                    pass
-                
-                # Вставляем из буфера обмена
-                text = self.clipboard_get()
-                widget.insert("insert", text)
+            # Удаляем выделенный текст если есть
+            try:
+                if widget.selection_present():
+                    widget.delete("sel.first", "sel.last")
+            except:
+                pass
+            
+            # Вставляем из буфера обмена
+            text = self.clipboard_get()
+            widget.insert("insert", text)
         except:
             pass
         return "break"
-
     def on_show(self):
         """Сброс полей при показе страницы"""
         self.reset_fields()
@@ -797,7 +794,7 @@ class BasePage(ctk.CTkFrame):
                             self.show_simple_popup("ФИЗО готово", "Заявка ФИЗО сформирована")
                         
                 except Exception as e:
-                    self.show_simple_popup("Ошибка", "Ошибка при формировании заявки ФИЗО" + e)
+                    self.show_simple_popup("Ошибка", f"Ошибка при формировании заявки ФИЗО, {e}")
                     print(f"Ошибка ФИЗО: {e}")
                 
         except Exception as e:
