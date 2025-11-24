@@ -986,9 +986,10 @@ class US(BasePage):
 class Spb(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Spb.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'SPB_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Савельев Дмитрий Генрихович', 'Семенова Мария Сергеевна'], 
-                        template_path, 'Спб')
+                        template_path, 'Спб', template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
             self, 
