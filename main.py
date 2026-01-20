@@ -50,7 +50,6 @@ class App(ctk.CTk):
             "MainPage": MainPage(self.container, self),
             "Novoros": Novoros(self.container, self),
             'Astrakhan': Astrakhan(self.container, self),
-            'Arhangelsk': Arhangelsk(self.container, self),
             'Bor': Bor(self.container, self),
             'Ekaterinburg': Ekaterinburg(self.container, self),
             'Habarovsk': Habarovsk(self.container, self),
@@ -64,7 +63,8 @@ class App(ctk.CTk):
             'Sevastopol': Sevastopol(self.container, self),
             'Spb': Spb(self.container, self),
             'US': US(self.container, self),
-            'Vladivostok': Vladivostok(self.container, self)
+            'Vladivostok': Vladivostok(self.container, self),
+            'Krasnoyarsk': Krasnoyarsk(self.container, self)
         }
         
         # Размещение всех страниц
@@ -900,7 +900,6 @@ class MainPage(ctk.CTkFrame):
         buttons = [
             ("Новороссийск", "Novoros"),
             ('Астрахань', 'Astrakhan'),
-            ('Архангельск', 'Arhangelsk'),
             ('Бор', 'Bor'),
             ('Екатеринбург', 'Ekaterinburg'),
             ('Хабаровск', 'Habarovsk'),
