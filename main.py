@@ -1104,7 +1104,7 @@ class Astrakhan(BasePage):
             command=lambda: controller.show_page('MainPage')
         ).grid(row=3, column=0, pady=20, padx=20, sticky="ew")
 
-class Arhangelsk(BasePage):
+"""class Arhangelsk(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Arhangelsk.docx')
         super().__init__(parent, controller, 
@@ -1115,7 +1115,7 @@ class Arhangelsk(BasePage):
             self, 
             text='Вернуться назад', 
             command=lambda: controller.show_page('MainPage')
-        ).grid(row=3, column=0, pady=20, padx=20, sticky="ew")
+        ).grid(row=3, column=0, pady=20, padx=20, sticky="ew")"""
 
 class Bor(BasePage):
     def __init__(self, parent, controller):
