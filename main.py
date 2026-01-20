@@ -1179,7 +1179,7 @@ class Krasnoyarsk(BasePage):
         template_path = os.path.join(TEMPLATES_DIR, 'Krasnoyarsk.docx')
         template_fizo_path = os.path.join(TEMPLATES_DIR, 'Krasnoyarsk_FIZO.docx')
         super().__init__(parent, controller, 
-                        ['Сироткин Сергей Николаевич'], 
+                        ['Бражевская Елена Викторовна'], 
                         template_path, 'Красноярск', east=True, template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
