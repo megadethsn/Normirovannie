@@ -914,7 +914,8 @@ class MainPage(ctk.CTkFrame):
             ('Севастополь', 'Sevastopol'),
             ('Санкт-Петербург', 'Spb'),
             ('Южно-Сахалинск', 'US'),
-            ('Владивосток', 'Vladivostok')
+            ('Владивосток', 'Vladivostok'),
+            ('Красноярск','Krasnoyarsk')
         ]
         
         
@@ -1134,10 +1135,10 @@ class Bor(BasePage):
 class Ekaterinburg(BasePage):
     def __init__(self, parent, controller):
         template_path = os.path.join(TEMPLATES_DIR, 'Ekaterinburg.docx')
-        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Ekaterinburg_FIZO.docx')
+        #template_fizo_path = os.path.join(TEMPLATES_DIR, 'Ekaterinburg_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Рослякова Надежда Викторовна'], 
-                        template_path, 'Екатеринбург', east=True, template_fizo_path=template_fizo_path)
+                        template_path, 'Екатеринбург', east=True)
         
         ctk.CTkButton(
             self, 
@@ -1166,6 +1167,20 @@ class Kaliningrad(BasePage):
         super().__init__(parent, controller, 
                         ['Сироткин Сергей Николаевич'], 
                         template_path, 'Калининград', template_fizo_path=template_fizo_path)
+        
+        ctk.CTkButton(
+            self, 
+            text='Вернуться назад', 
+            command=lambda: controller.show_page('MainPage')
+        ).grid(row=3, column=0, pady=20, padx=20, sticky="ew")
+
+class Krasnoyarsk(BasePage):
+    def __init__(self, parent, controller):
+        template_path = os.path.join(TEMPLATES_DIR, 'Krasnoyarsk.docx')
+        template_fizo_path = os.path.join(TEMPLATES_DIR, 'Krasnoyarsk_FIZO.docx')
+        super().__init__(parent, controller, 
+                        ['Сироткин Сергей Николаевич'], 
+                        template_path, 'Красноярск', east=True, template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
             self, 
