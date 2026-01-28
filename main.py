@@ -1068,7 +1068,7 @@ class Murmansk(BasePage):
         template_path = os.path.join(TEMPLATES_DIR, 'Murmansk.docx')
         template_fizo_path = os.path.join(TEMPLATES_DIR, 'Murmansk_FIZO.docx')
         super().__init__(parent, controller, 
-                        ['Савельева Карина Дмитриевна', 'Пахомов Андрей Юрьевич'], 
+                        ['Пахомов Андрей Юрьевич'], 
                         template_path, 'Мурманск', template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
@@ -1164,7 +1164,7 @@ class Kaliningrad(BasePage):
         template_path = os.path.join(TEMPLATES_DIR, 'Kaliningrad.docx')
         template_fizo_path = os.path.join(TEMPLATES_DIR, 'Kaliningrad_FIZO.docx')
         super().__init__(parent, controller, 
-                        ['Сироткин Сергей Николаевич'], 
+                        ['Дьяков Александр Евгеньевич'], 
                         template_path, 'Калининград', template_fizo_path=template_fizo_path)
         
         ctk.CTkButton(
