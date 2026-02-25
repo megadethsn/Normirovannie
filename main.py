@@ -268,7 +268,7 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(self.info_frame, text='Укажите исполнителя:', font=self.font).grid(row=9, column=0, sticky='w')
         self.issuer = ctk.StringVar(value='')
 
-        self.cb_marusya = ctk.CTkCheckBox(self.info_frame, text='Разгуляева М.А.', font=self.font, variable=self.issuer, onvalue='Маруся', offvalue='')
+        self.cb_marusya = ctk.CTkCheckBox(self.info_frame, text='Садовникова Ю.В.', font=self.font, variable=self.issuer, onvalue='Маруся', offvalue='')
         self.cb_marusya.grid(row=9, column=1, sticky='w')
         self.cb_vantuz = ctk.CTkCheckBox(self.info_frame, text='Воротилов И.И.', font=self.font, variable=self.issuer, onvalue='Вантуз', offvalue='')
         self.cb_vantuz.grid(row=9, column=2, sticky='w')
@@ -566,7 +566,7 @@ class BasePage(ctk.CTkFrame):
         if self.issuer.get() == 'Вантуз':
             return 'Воротилов Иван Иванович', 'oa13@msecurity.ru'
         elif self.issuer.get() == 'Маруся':
-            return 'Разгуляева Мария Андреевна', 'oa6@msecurity.ru'
+            return 'Садовникова Юлия Владимировна', 'oa18@msecurity.ru'
         elif self.issuer.get() == 'Создатель!!!':
             return 'Желудков Андрей Викторович', 'oa15@msecurity.ru'
         return '', ''
