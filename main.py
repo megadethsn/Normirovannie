@@ -274,6 +274,10 @@ class BasePage(ctk.CTkFrame):
         self.cb_vantuz.grid(row=9, column=2, sticky='w')
         self.cb_creator = ctk.CTkCheckBox(self.info_frame, text='Желудков А.В.', font=self.font, variable=self.issuer, onvalue='Создатель!!!', offvalue='')
         self.cb_creator.grid(row=9, column=3, sticky='w')
+        self.cb_maksim = ctk.CTkCheckBox(self.info_frame, text='Миронов М.С.', font=self.font, variable=self.issuer, onvalue='Максим', offvalue='')
+        self.cb_maksim.grid(row=9, column=4, sticky='w')
+        self.cb_katya = ctk.CTkCheckBox(self.info_frame, text='Попырина Е.М.', font=self.font, variable=self.issuer, onvalue='Катя', offvalue='')
+        self.cb_katya.grid(row=9, column=5, sticky='w')
         
 
         # Настройка колонок
@@ -569,6 +573,10 @@ class BasePage(ctk.CTkFrame):
             return 'Садовникова Юлия Владимировна', 'oa18@msecurity.ru'
         elif self.issuer.get() == 'Создатель!!!':
             return 'Желудков Андрей Викторович', 'oa15@msecurity.ru'
+        elif self.issuer.get() == 'Максим':
+            return 'Миронов Максим Сергеевич', 'oa16@msecurity.ru'
+        elif self.issuer.get() == 'Катя':
+            return 'Попырина Екатерина Михайловна', 'oa3@msecurity.ru'
         return '', ''
 
 
