@@ -1001,7 +1001,7 @@ class Spb(BasePage):
         template_fizo_path = os.path.join(TEMPLATES_DIR, 'SPB_FIZO.docx')
         super().__init__(parent, controller, 
                         ['Савельев Дмитрий Генрихович', 'Семенова Мария Сергеевна'], 
-                        template_path, 'Спб', template_fizo_path=template_fizo_path)
+                        template_path, 'Спб')
 
         ctk.CTkButton(
             self, 
@@ -1080,7 +1080,7 @@ class Murmansk(BasePage):
         template_path = os.path.join(TEMPLATES_DIR, 'Murmansk.docx')
         template_fizo_path = os.path.join(TEMPLATES_DIR, 'Murmansk_FIZO.docx')
         super().__init__(parent, controller, 
-                        ['Пахомов Андрей Юрьевич'], 
+                        ['Пахомов Андрей Юрьевич', "Лазарева Валерия Андреевна"], 
                         template_path, 'Мурманск', template_fizo_path=template_fizo_path)
 
         ctk.CTkButton(
