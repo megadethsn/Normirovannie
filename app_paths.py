@@ -25,8 +25,30 @@ def templates_dir():
     return path
 
 
+def assets_dir():
+    path = os.path.join(app_dir(), "assets")
+    if not os.path.isdir(path):
+        bundled_assets = os.path.join(bundled_dir(), "assets")
+        if os.path.isdir(bundled_assets):
+            shutil.copytree(bundled_assets, path)
+    os.makedirs(path, exist_ok=True)
+    return path
+
+
+def resolve_asset(filename):
+    if not filename:
+        return ""
+    if os.path.isabs(filename):
+        return filename
+    return os.path.join(assets_dir(), filename)
+
+
 def config_path():
     return os.path.join(app_dir(), "centers.json")
+
+
+def people_config_path():
+    return os.path.join(app_dir(), "people.json")
 
 
 def log_path():

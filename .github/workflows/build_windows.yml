@@ -21,16 +21,18 @@ jobs:
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
-        pip install pyinstaller customtkinter python-docx comtypes
+        pip install -r requirements.txt
         
-    - name: Prepare templates
+    - name: Prepare external files
       run: |
         mkdir dist\templates
         copy templates\* dist\templates\
+        mkdir dist\assets
+        copy assets\* dist\assets\
         
     - name: Build application
       run: |
-        pyinstaller --onefile --windowed --name GeneratorNormirovannoe --add-data "templates/*;templates" main.py
+        pyinstaller --onefile --windowed --name GeneratorNormirovannoe --icon "assets/msecurity_logo.ico" --add-data "templates/*;templates" --add-data "assets/*;assets" main.py
         
     - name: Verify build
       run: |
@@ -44,3 +46,4 @@ jobs:
         path: |
           dist/GeneratorNormirovannoe.exe
           dist/templates/
+          dist/assets/

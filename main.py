@@ -1,14 +1,15 @@
 import customtkinter as ctk
 from datetime import datetime
 import locale
-from tkinter import filedialog, messagebox
+from tkinter import PhotoImage, filedialog, messagebox
 import os
 
 from app_logging import get_logger, setup_logging
-from app_paths import templates_dir
+from app_paths import resolve_asset, templates_dir
 from centers import load_centers, normalized_center, save_centers
 from date_utils import MONTH_NAMES, format_ru_date, next_work_date
 from document_service import cleanup_word_apps, convert_to_pdf, format_docx
+from people import load_people, save_people
 from uins import format_uins
 
 setup_logging()
@@ -43,7 +44,9 @@ class App(ctk.CTk):
         self.title("Генератор нормированных заданий")
         self.geometry("1000x700")  
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        self.configure_app_icon()
         self.centers = load_centers()
+        self.people = load_people()
         
         # Главный контейнер для страниц
         self.container = ctk.CTkFrame(self)
@@ -66,6 +69,7 @@ class App(ctk.CTk):
         self.pages = {
             "MainPage": MainPage(self.container, self),
             "ManageCenters": ManageCentersPage(self.container, self),
+            "Settings": SettingsPage(self.container, self),
         }
         for center in self.centers:
             page_name = center.get("id")
@@ -79,6 +83,27 @@ class App(ctk.CTk):
         self.centers = centers
         save_centers(centers)
         self.rebuild_pages()
+
+    def save_people(self, people):
+        self.people = people
+        save_people(people)
+        self.rebuild_pages()
+
+    def configure_app_icon(self):
+        icon_path = resolve_asset("msecurity_logo.ico")
+        png_path = resolve_asset("msecurity_logo.png")
+        try:
+            if os.path.exists(icon_path):
+                self.iconbitmap(icon_path)
+                return
+        except Exception:
+            logger.exception("Не удалось установить ICO приложения")
+        try:
+            if os.path.exists(png_path):
+                self._app_icon = PhotoImage(file=png_path)
+                self.iconphoto(True, self._app_icon)
+        except Exception:
+            logger.exception("Не удалось установить PNG-иконку приложения")
     
     def show_page(self, page_name):
         """Показать выбранную страницу"""
@@ -301,30 +326,32 @@ class BasePage(ctk.CTkFrame):
         ctk.CTkLabel(people_frame, text='Должностное лицо:', font=self.font).grid(row=1, column=0, padx=10, pady=8, sticky='w')
 
         self.chief_var = ctk.StringVar(value='')
-        self.cb_bezzubcev = ctk.CTkRadioButton(people_frame, text='Беззубцев А.А.', font=self.font, variable=self.chief_var, value='Беззубцев')
-        self.cb_bezzubcev.grid(row=1, column=1, padx=8, pady=6, sticky='w')
+        self.chief_buttons = []
+        for index, chief in enumerate(self.controller.people.get("chiefs", [])):
+            button = ctk.CTkRadioButton(
+                people_frame,
+                text=chief.get("label", chief.get("fullname", "")),
+                font=self.font,
+                variable=self.chief_var,
+                value=chief.get("id", ""),
+            )
+            button.grid(row=1 + index // 3, column=1 + index % 3, padx=8, pady=6, sticky='w')
+            self.chief_buttons.append(button)
 
-        self.cb_aliabiev = ctk.CTkRadioButton(people_frame, text='Алябьев А.Б.', font=self.font, variable=self.chief_var, value='Алябьев')
-        self.cb_aliabiev.grid(row=1, column=2, padx=8, pady=6, sticky='w')
-
-        self.cb_popirina = ctk.CTkRadioButton(people_frame, text='Попырина Е.М.', font=self.font, variable=self.chief_var, value='Попырина')
-        self.cb_popirina.grid(row=1, column=3, padx=8, pady=6, sticky='w')
-
-        ctk.CTkLabel(people_frame, text='Исполнитель:', font=self.font).grid(row=2, column=0, padx=10, pady=8, sticky='w')
+        issuer_start_row = 2 + max(0, (len(self.chief_buttons) - 1) // 3)
+        ctk.CTkLabel(people_frame, text='Исполнитель:', font=self.font).grid(row=issuer_start_row, column=0, padx=10, pady=8, sticky='w')
         self.issuer = ctk.StringVar(value='')
-
-        self.cb_marusya = ctk.CTkRadioButton(people_frame, text='Садовникова Ю.В.', font=self.font, variable=self.issuer, value='Маруся')
-        self.cb_marusya.grid(row=2, column=1, padx=8, pady=6, sticky='w')
-        self.cb_vantuz = ctk.CTkRadioButton(people_frame, text='Воротилов И.И.', font=self.font, variable=self.issuer, value='Вантуз')
-        self.cb_vantuz.grid(row=2, column=2, padx=8, pady=6, sticky='w')
-        self.cb_creator = ctk.CTkRadioButton(people_frame, text='Желудков А.В.', font=self.font, variable=self.issuer, value='Создатель!!!')
-        self.cb_creator.grid(row=2, column=3, padx=8, pady=6, sticky='w')
-        self.cb_maksim = ctk.CTkRadioButton(people_frame, text='Миронов М.С.', font=self.font, variable=self.issuer, value='Максим')
-        self.cb_maksim.grid(row=3, column=1, padx=8, pady=6, sticky='w')
-        self.cb_katya = ctk.CTkRadioButton(people_frame, text='Попырина Е.М.', font=self.font, variable=self.issuer, value='Катя')
-        self.cb_katya.grid(row=3, column=2, padx=8, pady=6, sticky='w')
-        self.cb_aa = ctk.CTkRadioButton(people_frame, text='Беззубцев А.А.', font=self.font, variable=self.issuer, value='АА')
-        self.cb_aa.grid(row=3, column=3, padx=8, pady=6, sticky='w')
+        self.issuer_buttons = []
+        for index, issuer in enumerate(self.controller.people.get("issuers", [])):
+            button = ctk.CTkRadioButton(
+                people_frame,
+                text=issuer.get("label", issuer.get("fullname", "")),
+                font=self.font,
+                variable=self.issuer,
+                value=issuer.get("id", ""),
+            )
+            button.grid(row=issuer_start_row + index // 3, column=1 + index % 3, padx=8, pady=6, sticky='w')
+            self.issuer_buttons.append(button)
 
         actions_frame = ctk.CTkFrame(master=self, fg_color="transparent")
         actions_frame.grid(row=2, column=0, padx=22, pady=(8, 18), sticky='ew')
@@ -373,14 +400,16 @@ class BasePage(ctk.CTkFrame):
             self.work_date_entry,
             self.entry_start_time,
             self.entry_end_time,
-            self.cb_pfo, self.entry_pfo,
-            self.cb_fizo, self.entry_fizo, 
-            self.cb_zun, self.entry_zun,
+            self.cb_pfo,
+            self.cb_fizo,
+            self.cb_zun,
+            self.entry_pfo,
+            self.entry_fizo,
             self.fizo_number_entry,
+            self.entry_zun,
             self.workers_dropdown.toggle_btn,
-            self.cb_bezzubcev, self.cb_aliabiev, self.cb_popirina,
-            self.cb_marusya, self.cb_vantuz, self.cb_creator,
-            self.cb_maksim, self.cb_katya, self.cb_aa,
+            *self.chief_buttons,
+            *self.issuer_buttons,
             self.btn_save
         ]
 
@@ -431,9 +460,12 @@ class BasePage(ctk.CTkFrame):
                 current_index = self.navigation_widgets.index(current_widget)
                 next_widget = self.next_focusable_widget(current_index, direction)
                 next_widget.focus_set()
+                self.scroll_to_widget(next_widget)
                 
             else:
-                self.next_focusable_widget(-1, 1).focus_set()
+                next_widget = self.next_focusable_widget(-1, 1)
+                next_widget.focus_set()
+                self.scroll_to_widget(next_widget)
                 
         except Exception as e:
             logger.exception("Ошибка навигации: %s", e)
@@ -448,10 +480,24 @@ class BasePage(ctk.CTkFrame):
         return self.num_entry
 
     def is_focusable(self, widget):
+        if widget == self.entry_pfo:
+            return self.pfo_var.get()
+        if widget == self.entry_fizo:
+            return self.fizo_var.get()
+        if widget == self.fizo_number_entry:
+            return self.fizo_var.get() and bool(self.template_fizo_path)
+        if widget == self.entry_zun:
+            return self.zun_var.get()
         try:
-            return bool(widget.winfo_exists() and widget.winfo_ismapped())
+            return bool(widget.winfo_exists())
         except Exception:
             return False
+
+    def scroll_to_widget(self, widget):
+        try:
+            self.after(10, lambda: widget._entry.focus_set() if hasattr(widget, "_entry") else widget.focus_set())
+        except Exception:
+            pass
 
     def on_control_key(self, event):
         key = (getattr(event, "keysym", "") or "").lower()
@@ -679,36 +725,18 @@ class BasePage(ctk.CTkFrame):
     
     #Чекбоксы подписанты
     def get_result_chief(self):
-        selected = []
-
-        if self.chief_var.get() == 'Беззубцев':
-            selected.append('Начальник отдела проверок сил ОТБ')
-            selected.append('А.А. Беззубцев')
-
-        if self.chief_var.get() == 'Алябьев':
-            selected.append('Заместитель начальника Службы')
-            selected.append('А.Б. Алябьев')
-
-        if self.chief_var.get() == 'Попырина':
-            selected.append('Заместитель начальника отдела проверок сил ОТБ')
-            selected.append('Е.М. Попырина')
-        
-        return selected
+        selected_id = self.chief_var.get()
+        for chief in self.controller.people.get("chiefs", []):
+            if chief.get("id") == selected_id:
+                return [chief.get("job_title", ""), chief.get("fullname", "")]
+        return ["", ""]
     
     #Функция чекбоксы исполнители
     def get_result_issuer(self):
-        if self.issuer.get() == 'Вантуз':
-            return 'Воротилов Иван Иванович', 'oa13@msecurity.ru'
-        elif self.issuer.get() == 'Маруся':
-            return 'Садовникова Юлия Владимировна', 'oa18@msecurity.ru'
-        elif self.issuer.get() == 'Создатель!!!':
-            return 'Желудков Андрей Викторович', 'oa15@msecurity.ru'
-        elif self.issuer.get() == 'Максим':
-            return 'Миронов Максим Сергеевич', 'oa6@msecurity.ru'
-        elif self.issuer.get() == 'Катя':
-            return 'Попырина Екатерина Михайловна', 'oa3@msecurity.ru'
-        elif self.issuer.get() == 'АА':
-            return 'Беззубцев Александр Анатольевич', 'oa2@msecurity.ru'
+        selected_id = self.issuer.get()
+        for issuer in self.controller.people.get("issuers", []):
+            if issuer.get("id") == selected_id:
+                return issuer.get("fullname", ""), issuer.get("email", "")
         return '', ''
 
 
@@ -935,49 +963,109 @@ class MainPage(ctk.CTkFrame):
     def __init__(self, parent, controller):
         super().__init__(parent)
         self.controller = controller
-        
-        # Заголовок
-        self.label = ctk.CTkLabel(self, text="Главная страница", font=("TimesNewRoman", 24))
-        self.label.grid(row=0, column=0, columnspan=3, pady=20, padx=20)
-        
+
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        self.configure(fg_color="#101416")
+
+        watermark_path = resolve_asset("msecurity_logo_watermark.png")
+        if os.path.exists(watermark_path):
+            try:
+                self.watermark_image = PhotoImage(file=watermark_path)
+                self.watermark = ctk.CTkLabel(self, text="", image=self.watermark_image, fg_color="transparent")
+                self.watermark.place(relx=0.58, rely=0.52, anchor="center")
+            except Exception:
+                logger.exception("Не удалось загрузить фоновый логотип")
+
+        sidebar = ctk.CTkFrame(self, width=300, corner_radius=0, fg_color="#162023")
+        sidebar.grid(row=0, column=0, sticky="nsew")
+        sidebar.grid_propagate(False)
+        sidebar.grid_rowconfigure(6, weight=1)
+
+        logo_path = resolve_asset("msecurity_logo.png")
+        if os.path.exists(logo_path):
+            try:
+                self.logo_image = PhotoImage(file=logo_path).subsample(5, 5)
+                ctk.CTkLabel(sidebar, text="", image=self.logo_image, fg_color="transparent").grid(
+                    row=0, column=0, padx=26, pady=(26, 8), sticky="w"
+                )
+            except Exception:
+                logger.exception("Не удалось загрузить логотип главной страницы")
+
+        ctk.CTkLabel(
+            sidebar,
+            text="Генератор\nнормированных заданий",
+            font=("TimesNewRoman", 24),
+            justify="left",
+            anchor="w",
+        ).grid(row=1, column=0, padx=26, pady=(6, 8), sticky="ew")
+        ctk.CTkLabel(
+            sidebar,
+            text="Выберите центр или откройте настройки приложения.",
+            font=("TimesNewRoman", 13),
+            text_color="gray72",
+            wraplength=230,
+            justify="left",
+        ).grid(row=2, column=0, padx=26, pady=(0, 26), sticky="ew")
+
+        ctk.CTkButton(
+            sidebar,
+            text="Центры",
+            command=lambda: controller.show_page("ManageCenters"),
+            height=38,
+        ).grid(row=3, column=0, padx=26, pady=6, sticky="ew")
+
+        ctk.CTkButton(
+            sidebar,
+            text="Настройки",
+            command=lambda: controller.show_page("Settings"),
+            height=38,
+        ).grid(row=4, column=0, padx=26, pady=6, sticky="ew")
+
+        ctk.CTkButton(
+            sidebar,
+            text="Выход",
+            command=self.controller.on_close,
+            fg_color="#8b1e24",
+            hover_color="#6f171c",
+            height=38,
+        ).grid(row=7, column=0, padx=26, pady=(6, 26), sticky="ew")
+
+        content = ctk.CTkFrame(self, fg_color="transparent")
+        content.grid(row=0, column=1, sticky="nsew", padx=24, pady=24)
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_rowconfigure(1, weight=1)
+
+        ctk.CTkLabel(
+            content,
+            text="Центры",
+            font=("TimesNewRoman", 24),
+            anchor="w",
+        ).grid(row=0, column=0, sticky="ew", pady=(0, 12))
+
+        centers_frame = ctk.CTkScrollableFrame(content, fg_color="#151b1e")
+        centers_frame.grid(row=1, column=0, sticky="nsew")
+        for column in range(3):
+            centers_frame.grid_columnconfigure(column, weight=1)
+
         buttons = [
             (center.get("button") or center.get("name"), center.get("id"))
             for center in self.controller.centers
             if center.get("id")
         ]
-        
-        
+
         for i, (text, page) in enumerate(buttons):
-            row = i // 3 + 1  
+            row = i // 3
             col = i % 3
             btn = ctk.CTkButton(
-                self, 
+                centers_frame,
                 text=text,
                 command=lambda p=page: controller.show_page(p),
-                height=40,
-                width=200
+                height=44,
+                anchor="w",
             )
-            btn.grid(row=row, column=col, pady=10, padx=10, sticky='nsew')
-
-        manage_btn = ctk.CTkButton(
-            self,
-            text="Центры",
-            command=lambda: controller.show_page("ManageCenters"),
-            height=40,
-            width=200
-        )
-        manage_btn.grid(row=len(buttons)//3 + 2, column=0, pady=20, padx=10, sticky='nsew')
-        
-        close_btn = ctk.CTkButton(
-            self,
-            text="Выход",
-            command=self.controller.on_close,
-            fg_color="red",
-            hover_color="darkred",
-            height=40,
-            width=200
-        )
-        close_btn.grid(row=len(buttons)//3 + 2, column=1, pady=20, padx=10, sticky='nsew')
+            btn.grid(row=row, column=col, pady=8, padx=8, sticky='ew')
 
 
 class ManageCentersPage(ctk.CTkFrame):
@@ -1199,6 +1287,203 @@ class ManageCentersPage(ctk.CTkFrame):
         popup.transient(self)
         ctk.CTkLabel(popup, text=message, wraplength=380).pack(pady=30, padx=10)
         popup.after(2000, popup.destroy)
+
+
+class SettingsPage(ctk.CTkFrame):
+    def __init__(self, parent, controller):
+        super().__init__(parent)
+        self.controller = controller
+        self.people = {
+            "chiefs": [dict(item) for item in controller.people.get("chiefs", [])],
+            "issuers": [dict(item) for item in controller.people.get("issuers", [])],
+        }
+        self.current_group = "chiefs"
+        self.current_index = 0
+
+        self.grid_columnconfigure(0, weight=0)
+        self.grid_columnconfigure(1, weight=1)
+        self.grid_rowconfigure(1, weight=1)
+
+        ctk.CTkLabel(self, text="Настройки", font=("TimesNewRoman", 24)).grid(
+            row=0, column=0, columnspan=2, pady=20, padx=20, sticky="w"
+        )
+
+        self.list_frame = ctk.CTkScrollableFrame(self, width=300)
+        self.list_frame.grid(row=1, column=0, sticky="nsew", padx=10, pady=10)
+
+        self.form_frame = ctk.CTkFrame(self)
+        self.form_frame.grid(row=1, column=1, sticky="nsew", padx=10, pady=10)
+        self.form_frame.grid_columnconfigure(1, weight=1)
+
+        self.group_var = ctk.StringVar(value="chiefs")
+        group_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        group_frame.grid(row=0, column=0, columnspan=2, sticky="ew", padx=8, pady=8)
+        ctk.CTkRadioButton(group_frame, text="Должностные лица", variable=self.group_var, value="chiefs", command=self.change_group).grid(row=0, column=0, padx=8, pady=4, sticky="w")
+        ctk.CTkRadioButton(group_frame, text="Исполнители", variable=self.group_var, value="issuers", command=self.change_group).grid(row=0, column=1, padx=8, pady=4, sticky="w")
+
+        self.id_var = ctk.StringVar()
+        self.label_var = ctk.StringVar()
+        self.job_title_var = ctk.StringVar()
+        self.fullname_var = ctk.StringVar()
+        self.email_var = ctk.StringVar()
+
+        self.fields = [
+            ("ID", self.id_var),
+            ("Отображение", self.label_var),
+            ("Должность", self.job_title_var),
+            ("ФИО для документа", self.fullname_var),
+            ("Email", self.email_var),
+        ]
+
+        self.field_entries = {}
+        for row, (label, variable) in enumerate(self.fields, start=1):
+            ctk.CTkLabel(self.form_frame, text=label).grid(row=row, column=0, sticky="w", padx=8, pady=6)
+            entry = ctk.CTkEntry(self.form_frame, textvariable=variable)
+            entry.grid(row=row, column=1, sticky="ew", padx=8, pady=6)
+            self.field_entries[label] = entry
+            self.bind_text_shortcuts(entry)
+
+        buttons_frame = ctk.CTkFrame(self.form_frame)
+        buttons_frame.grid(row=6, column=0, columnspan=2, sticky="ew", padx=8, pady=10)
+        buttons_frame.grid_columnconfigure((0, 1, 2, 3), weight=1)
+
+        ctk.CTkButton(buttons_frame, text="Добавить", command=self.add_item).grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(buttons_frame, text="Удалить", command=self.delete_item, fg_color="red", hover_color="darkred").grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(buttons_frame, text="Сохранить", command=self.save_current).grid(row=0, column=2, padx=5, pady=5, sticky="ew")
+        ctk.CTkButton(buttons_frame, text="Назад", command=lambda: controller.show_page("MainPage")).grid(row=0, column=3, padx=5, pady=5, sticky="ew")
+
+        self.refresh_list()
+        self.load_current()
+
+    def bind_text_shortcuts(self, widget):
+        widget.bind('<Control-KeyPress>', self.on_control_key)
+        inner = getattr(widget, "_entry", None)
+        if inner:
+            inner.bind('<Control-KeyPress>', self.on_control_key)
+
+    def on_control_key(self, event):
+        key = (getattr(event, "keysym", "") or "").lower()
+        keycode = getattr(event, "keycode", None)
+        if key in ("a", "ф", "cyrillic_ef") or keycode == 65:
+            widget = getattr(event.widget, "_entry", None) or event.widget
+            widget.selection_range(0, "end")
+            widget.icursor("end")
+            return "break"
+
+    def change_group(self):
+        self.current_group = self.group_var.get()
+        self.current_index = 0
+        self.refresh_list()
+        self.load_current()
+
+    def refresh_list(self):
+        for widget in self.list_frame.winfo_children():
+            widget.destroy()
+
+        for group, title in (("chiefs", "Должностные лица"), ("issuers", "Исполнители")):
+            ctk.CTkLabel(self.list_frame, text=title, font=("TimesNewRoman", 16)).pack(anchor="w", padx=5, pady=(10, 4))
+            for index, item in enumerate(self.people.get(group, [])):
+                text = item.get("label") or item.get("fullname") or item.get("id") or "Новая запись"
+                button = ctk.CTkButton(
+                    self.list_frame,
+                    text=text,
+                    command=lambda g=group, i=index: self.select_item(g, i),
+                )
+                button.pack(fill="x", padx=5, pady=3)
+
+    def select_item(self, group, index):
+        self.current_group = group
+        self.group_var.set(group)
+        self.current_index = index
+        self.load_current()
+
+    def load_current(self):
+        items = self.people.get(self.current_group, [])
+        if not items:
+            self.add_item()
+            return
+
+        item = items[self.current_index]
+        self.id_var.set(item.get("id", ""))
+        self.label_var.set(item.get("label", ""))
+        self.job_title_var.set(item.get("job_title", ""))
+        self.fullname_var.set(item.get("fullname", ""))
+        self.email_var.set(item.get("email", ""))
+
+        self.field_entries["Должность"].configure(state="normal" if self.current_group == "chiefs" else "disabled")
+        self.field_entries["Email"].configure(state="normal" if self.current_group == "issuers" else "disabled")
+
+    def collect_current(self):
+        item = {
+            "id": self.id_var.get().strip(),
+            "label": self.label_var.get().strip(),
+            "fullname": self.fullname_var.get().strip(),
+        }
+        if self.current_group == "chiefs":
+            item["job_title"] = self.job_title_var.get().strip()
+        else:
+            item["email"] = self.email_var.get().strip()
+        return item
+
+    def save_current(self):
+        item = self.collect_current()
+        errors = self.validate_item(item)
+        if errors:
+            self.show_simple_popup("Ошибка", "\n".join(errors))
+            return
+
+        self.people[self.current_group][self.current_index] = item
+        self.controller.save_people(self.people)
+        self.controller.show_page("Settings")
+
+    def validate_item(self, item):
+        errors = []
+        if not item["id"] or not item["label"] or not item["fullname"]:
+            errors.append("Заполните ID, отображение и ФИО")
+        if self.current_group == "chiefs" and not item.get("job_title"):
+            errors.append("Укажите должность")
+        if self.current_group == "issuers" and not item.get("email"):
+            errors.append("Укажите email")
+
+        ids = [
+            value.get("id", "").strip()
+            for index, value in enumerate(self.people.get(self.current_group, []))
+            if index != self.current_index
+        ]
+        if item["id"] in ids:
+            errors.append("ID должен быть уникальным")
+        return errors
+
+    def add_item(self):
+        group = self.current_group
+        number = len(self.people.get(group, [])) + 1
+        if group == "chiefs":
+            item = {"id": f"chief_{number}", "label": "Новое лицо", "job_title": "", "fullname": ""}
+        else:
+            item = {"id": f"issuer_{number}", "label": "Новый исполнитель", "fullname": "", "email": ""}
+        self.people.setdefault(group, []).append(item)
+        self.current_index = len(self.people[group]) - 1
+        self.refresh_list()
+        self.load_current()
+
+    def delete_item(self):
+        items = self.people.get(self.current_group, [])
+        if not items:
+            return
+        if not messagebox.askyesno("Удалить запись", "Удалить выбранную запись?"):
+            return
+        items.pop(self.current_index)
+        self.current_index = max(0, self.current_index - 1)
+        self.controller.save_people(self.people)
+        self.controller.show_page("Settings")
+
+    def show_simple_popup(self, title, message):
+        popup = ctk.CTkToplevel(self)
+        popup.title(title)
+        popup.geometry("420x140")
+        popup.transient(self)
+        ctk.CTkLabel(popup, text=message, wraplength=400).pack(pady=30, padx=10)
+        popup.after(2500, popup.destroy)
 
 
 if __name__ == "__main__":
