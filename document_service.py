@@ -5,6 +5,8 @@ from docx import Document
 from docx.shared import Pt
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 
+ACTIVE_WORD_APPS = []
+
 
 def format_docx(replacements, template_path):
     edited_doc = Document(template_path)
@@ -64,6 +66,7 @@ def convert_to_pdf(docx_path, pdf_path):
 
         try:
             word = comtypes.client.CreateObject("Word.Application")
+            ACTIVE_WORD_APPS.append(word)
             word.Visible = False
             word.DisplayAlerts = False
             time.sleep(1)
@@ -87,5 +90,22 @@ def convert_to_pdf(docx_path, pdf_path):
                     word.Quit()
             except Exception:
                 pass
+            try:
+                if word in ACTIVE_WORD_APPS:
+                    ACTIVE_WORD_APPS.remove(word)
+            except Exception:
+                pass
     except Exception:
         return False
+
+
+def cleanup_word_apps():
+    for word in list(ACTIVE_WORD_APPS):
+        try:
+            word.Quit()
+        except Exception:
+            pass
+        try:
+            ACTIVE_WORD_APPS.remove(word)
+        except Exception:
+            pass

@@ -8,7 +8,7 @@ from app_logging import get_logger, setup_logging
 from app_paths import templates_dir
 from centers import load_centers, normalized_center, save_centers
 from date_utils import MONTH_NAMES, format_ru_date, next_work_date
-from document_service import convert_to_pdf, format_docx
+from document_service import cleanup_word_apps, convert_to_pdf, format_docx
 from uins import format_uins
 
 setup_logging()
@@ -42,6 +42,7 @@ class App(ctk.CTk):
         super().__init__()
         self.title("Генератор нормированных заданий")
         self.geometry("1000x700")  
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
         self.centers = load_centers()
         
         # Главный контейнер для страниц
@@ -86,6 +87,18 @@ class App(ctk.CTk):
             page.tkraise()
             if hasattr(page, "on_show"):
                 page.on_show()
+
+    def on_close(self):
+        logger.info("Закрытие приложения")
+        try:
+            cleanup_word_apps()
+        except Exception as error:
+            logger.exception("Ошибка при закрытии Word COM-объектов: %s", error)
+        try:
+            self.quit()
+            self.destroy()
+        finally:
+            os._exit(0)
 
 class MultiSelectDropdown(ctk.CTkFrame):
     def __init__(self, master, values, **kwargs):
@@ -449,6 +462,8 @@ class BasePage(ctk.CTkFrame):
             return self.on_cut(event)
         if key in ("v", "м", "cyrillic_em") or keycode == 86:
             return self.on_paste(event)
+        if key in ("a", "ф", "cyrillic_ef") or keycode == 65:
+            return self.on_select_all(event)
 
     def on_copy(self, event):
         """Копирование"""
@@ -493,6 +508,15 @@ class BasePage(ctk.CTkFrame):
             widget.insert("insert", text)
         except Exception as e:
             logger.exception("Ошибка вставки: %s", e)
+        return "break"
+
+    def on_select_all(self, event):
+        try:
+            widget = self._entry_widget(event.widget)
+            widget.selection_range(0, "end")
+            widget.icursor("end")
+        except Exception as e:
+            logger.exception("Ошибка выделения текста: %s", e)
         return "break"
 
     def _entry_widget(self, widget):
@@ -947,7 +971,7 @@ class MainPage(ctk.CTkFrame):
         close_btn = ctk.CTkButton(
             self,
             text="Выход",
-            command=self.controller.quit,
+            command=self.controller.on_close,
             fg_color="red",
             hover_color="darkred",
             height=40,
@@ -998,6 +1022,7 @@ class ManageCentersPage(ctk.CTkFrame):
             ctk.CTkLabel(self.form_frame, text=label).grid(row=row, column=0, sticky="w", padx=8, pady=6)
             entry = ctk.CTkEntry(self.form_frame, textvariable=var)
             entry.grid(row=row, column=1, sticky="ew", padx=8, pady=6)
+            self.bind_text_shortcuts(entry)
             if browse:
                 command = self.choose_template if var == self.template_var else self.choose_fizo_template
                 ctk.CTkButton(self.form_frame, text="Выбрать", width=110, command=command).grid(
@@ -1011,6 +1036,7 @@ class ManageCentersPage(ctk.CTkFrame):
         ctk.CTkLabel(self.form_frame, text="Сотрудники").grid(row=6, column=0, sticky="nw", padx=8, pady=6)
         self.workers_text = ctk.CTkTextbox(self.form_frame, height=170)
         self.workers_text.grid(row=6, column=1, sticky="nsew", padx=8, pady=6)
+        self.bind_text_shortcuts(self.workers_text)
 
         buttons_frame = ctk.CTkFrame(self.form_frame)
         buttons_frame.grid(row=7, column=0, columnspan=2, sticky="ew", padx=8, pady=10)
@@ -1023,6 +1049,34 @@ class ManageCentersPage(ctk.CTkFrame):
 
         self.refresh_list()
         self.load_current()
+
+    def bind_text_shortcuts(self, widget):
+        widget.bind('<Control-KeyPress>', self.on_control_key)
+        inner = getattr(widget, "_entry", None) or getattr(widget, "_textbox", None)
+        if inner:
+            inner.bind('<Control-KeyPress>', self.on_control_key)
+
+    def on_control_key(self, event):
+        key = (getattr(event, "keysym", "") or "").lower()
+        keycode = getattr(event, "keycode", None)
+        if key in ("c", "с", "cyrillic_es") or keycode == 67:
+            return
+        if key in ("x", "ч", "cyrillic_che") or keycode == 88:
+            return
+        if key in ("v", "м", "cyrillic_em") or keycode == 86:
+            return
+        if key in ("a", "ф", "cyrillic_ef") or keycode == 65:
+            return self.on_select_all(event)
+
+    def on_select_all(self, event):
+        widget = getattr(event.widget, "_entry", None) or getattr(event.widget, "_textbox", None) or event.widget
+        try:
+            widget.selection_range(0, "end")
+            widget.icursor("end")
+        except Exception:
+            widget.tag_add("sel", "1.0", "end")
+            widget.mark_set("insert", "end")
+        return "break"
 
     def refresh_list(self):
         for widget in self.list_frame.winfo_children():
