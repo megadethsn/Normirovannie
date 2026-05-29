@@ -627,6 +627,8 @@ class BasePage(ctk.CTkFrame):
         elif checkbox == 'fizo':
             if self.fizo_var.get():
                 if self.template_fizo_path:
+                    self.TIME_START.set('11:00')
+                if self.template_fizo_path:
                     self.entry_fizo.grid(row=1, column=1, padx=10, pady=8, sticky='ew')
                     self.fizo_number_label.grid(row=1, column=2, padx=10, pady=8, sticky='e')
                     self.fizo_number_entry.grid(row=1, column=3, padx=10, pady=8, sticky='ew')
@@ -638,6 +640,8 @@ class BasePage(ctk.CTkFrame):
                 self.entry_fizo.grid_forget()
                 self.fizo_number_label.grid_forget()
                 self.fizo_number_entry.grid_forget()
+                if self.template_fizo_path:
+                    self.TIME_START.set('10:00')
         elif checkbox == 'zun':
             if self.zun_var.get():
                 self.entry_zun.grid(row=2, column=1, columnspan=3, padx=10, pady=8, sticky='ew')
@@ -654,6 +658,7 @@ class BasePage(ctk.CTkFrame):
                 preview_parts.extend(self.formate_uins(self.fizo_value.get()))
             if self.zun_var.get():
                 preview_parts.extend(self.formate_uins(self.zun_value.get()))
+            preview_parts = list(dict.fromkeys(preview_parts))
             if preview_parts:
                 preview = '; '.join(preview_parts)
                 if len(preview) > 420:
